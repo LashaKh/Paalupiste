@@ -1,13 +1,14 @@
 import React, { useState, useRef } from 'react';
 import { FileText, Sparkles, Loader2, List, Plus, CheckCircle } from 'lucide-react';
-import { FormInput } from '../components/FormInput';
-import { FormTextArea } from '../components/FormTextArea';
-import { useToast } from '../hooks/useToast';
+import { FormInput } from '../components/forms/FormInput';
+import { FormTextArea } from '../components/forms/FormTextArea';
+import { useToast } from '../contexts/ToastContext';
 import { useOutlines } from '../contexts/OutlineContext';
 import { useIdeas } from '../contexts/IdeasContext';
-import { OutlineSidebar } from '../components/OutlineSidebar';
-import { ArticlesSidebar } from '../components/ArticlesSidebar';
-import { IdeasSidebar } from '../components/IdeasSidebar';
+import { OutlineSidebar } from '../components/sidebar/OutlineSidebar';
+import { ArticlesSidebar } from '../components/sidebar/ArticlesSidebar';
+import { IdeasSidebar } from '../components/sidebar/IdeasSidebar';
+import { ArticleInstructions } from '../components/shared/instructions';
 
 interface ArticleTheme {
   title: string;
@@ -247,6 +248,9 @@ export default function ArticleGeneration() {
           Create in-depth articles about screw pile technology, applications, and benefits
         </p>
       </div>
+
+      {/* Instructions Menu */}
+      <ArticleInstructions />
 
       {/* Add Outlines Button */}
       <div className="fixed left-4 top-20 z-50">

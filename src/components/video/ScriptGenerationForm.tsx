@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { Sparkles, Loader2, AlertCircle } from 'lucide-react';
-import { FormInput } from '../FormInput';
-import { FormTextArea } from '../FormTextArea';
-import { FormSelect } from '../FormSelect';
+import { FormInput } from '../forms/FormInput';
+import { FormTextArea } from '../forms/FormTextArea';
+import { FormSelect } from '../forms/FormSelect';
 import { useToast } from '../../hooks/useToast';
 
 interface ScriptGenerationFormProps {

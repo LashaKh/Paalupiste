@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { LogOut, ChevronLeft, ChevronRight } from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { Logo } from './Logo';
-import LeadSidebar from './LeadSidebar';
+import LeadSidebar from '../sidebar/LeadSidebar';
+import { cn } from '../../lib/utils';
 
 const SIDEBAR_WIDTH = '16rem';
 

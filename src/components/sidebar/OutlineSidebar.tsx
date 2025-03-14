@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { FileText, Trash2, X, Loader2 } from 'lucide-react';
-import { useOutlines, Outline } from '../contexts/OutlineContext';
-import { useArticles } from '../contexts/ArticlesContext';
+import { useOutlines, Outline } from '../../contexts/OutlineContext';
+import { useArticles } from '../../contexts/ArticlesContext';
 import { useNavigate } from 'react-router-dom';
-import { OutlineEditor } from './OutlineEditor';
-import { useToast } from '../contexts/ToastContext';
+import { OutlineEditor } from '../forms/OutlineEditor';
+import { useToast } from '../../contexts/ToastContext';
 
 interface OutlineSidebarProps {
   isOpen: boolean;

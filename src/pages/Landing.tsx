@@ -2,7 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Building2, Target, Users, ArrowRight, Search, UserCheck, Mail, FileText, Sparkles } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { Logo } from '../components/Logo';
+import { Logo } from "../components/layout/Logo";
 
 export default function Landing() {
   const { user } = useAuth();

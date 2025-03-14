@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Lock, Mail } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { Logo } from '../components/Logo';
+import { Logo } from '../components/layout/Logo';
 import { PasswordInput } from '../components/auth/PasswordInput';
 import { useToast } from '../hooks/useToast';
 

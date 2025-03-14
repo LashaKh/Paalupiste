@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Upload, X, Image as ImageIcon, Loader2 } from 'lucide-react';
-import { useToast } from '../hooks/useToast';
+import { useToast } from '../../contexts/ToastContext';
 
 interface ImageUploadProps {
   onImagesUploaded: (imageUrls: string[]) => void;

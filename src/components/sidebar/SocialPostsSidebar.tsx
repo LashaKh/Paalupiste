@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { FileText, Trash2, X, Facebook, Linkedin, Edit2, Save, XCircle, ChevronDown, ChevronRight, MoveRight, Loader2 } from 'lucide-react';
-import { useSocialPosts, SocialPost } from '../contexts/SocialPostsContext';
-import { useToast } from '../contexts/ToastContext';
+import { useSocialPosts, SocialPost } from '../../contexts/SocialPostsContext';
+import { useToast } from '../../contexts/ToastContext';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '../lib/supabase';
+import { supabase } from '../../lib/supabase';
 
 interface SocialPostsSidebarProps {
   isOpen: boolean;
@@ -164,14 +164,18 @@ export function SocialPostsSidebar({ isOpen, onClose }: SocialPostsSidebarProps)
                       <button
                         onClick={(e) => handleMoveToTable(post, e)}
                         disabled={movingPost === post.id}
-                        className={`text-primary hover:text-primary-hover transition-colors p-1 ${
+                        className={`inline-flex items-center gap-1 px-2 py-1 rounded bg-primary/10 text-primary hover:bg-primary/20 transition-all ${
                           movingPost === post.id ? 'opacity-50 cursor-not-allowed' : ''
                         }`}
+                        title="Move this post to the Content Table for publishing"
                       >
                         {movingPost === post.id ? (
                           <Loader2 className="h-4 w-4 animate-spin" />
                         ) : (
-                          <MoveRight className="h-4 w-4" />
+                          <>
+                            <MoveRight className="h-4 w-4" />
+                            <span className="text-sm">Move to Content</span>
+                          </>
                         )}
                       </button>
                     </div>

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useGenerationHistory } from '../contexts/GenerationHistoryContext';
 import { History, ExternalLink, Info, CheckCircle, XCircle, MapPin, Package, FileText, Calendar, Link as LinkIcon, Trash2, UserPlus, Loader2, Building2, DownloadCloud } from 'lucide-react';
-import Modal from '../components/Modal';
+import Modal from '../components/ui/Modal';
 import { useToast } from '../hooks/useToast';
 import { useAuth } from '../contexts/AuthContext';
 import { enrichLeads, enrichCompanyDetails, enrichCompanyDetailsSecondary } from '../lib/api';

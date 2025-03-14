@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { FileText, Trash2, X, Code, Eye } from 'lucide-react';
-import { useBrochures, Brochure } from '../contexts/BrochureContext';
-import { useToast } from '../contexts/ToastContext';
+import { useBrochures, Brochure } from '../../contexts/BrochureContext';
+import { useToast } from '../../contexts/ToastContext';
 
 interface BrochuresSidebarProps {
   isOpen: boolean;

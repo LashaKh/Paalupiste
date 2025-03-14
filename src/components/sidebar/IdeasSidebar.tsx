@@ -1,7 +1,7 @@
 import React from 'react';
 import { FileText, Trash2, X, Plus } from 'lucide-react';
-import { useIdeas, ArticleIdea } from '../contexts/IdeasContext';
-import { useToast } from '../contexts/ToastContext';
+import { useIdeas, ArticleIdea } from '../../contexts/IdeasContext';
+import { useToast } from '../../contexts/ToastContext';
 
 interface IdeasSidebarProps {
   isOpen: boolean;

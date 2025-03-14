@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { FileText, Trash2, X, Loader2, MoveRight } from 'lucide-react';
-import { useNewsletters, Newsletter } from '../contexts/NewsletterContext';
-import { OutlineEditor } from './OutlineEditor';
-import { useToast } from '../contexts/ToastContext';
+import { FileText, Trash2, X, Loader2, MoveRight, Code, Eye } from 'lucide-react';
+import { useNewsletters, Newsletter } from '../../contexts/NewsletterContext';
+import { OutlineEditor } from '../forms/OutlineEditor';
+import { useToast } from '../../contexts/ToastContext';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '../lib/supabase';
+import { supabase } from '../../lib/supabase';
 
 interface NewsletterSidebarProps {
   isOpen: boolean;
@@ -137,14 +137,18 @@ export function NewsletterSidebar({ isOpen, onClose }: NewsletterSidebarProps) {
                       <button
                         onClick={(e) => handleMoveToTable(newsletter, e)}
                         disabled={movingNewsletter === newsletter.id}
-                        className={`text-primary hover:text-primary-hover transition-colors ${
+                        className={`inline-flex items-center gap-1 px-2 py-1 rounded bg-primary/10 text-primary hover:bg-primary/20 transition-all ${
                           movingNewsletter === newsletter.id ? 'opacity-50 cursor-not-allowed' : ''
                         }`}
+                        title="Move this newsletter to the Content Table for publishing"
                       >
                         {movingNewsletter === newsletter.id ? (
                           <Loader2 className="h-4 w-4 animate-spin" />
                         ) : (
-                          <MoveRight className="h-4 w-4" />
+                          <>
+                            <MoveRight className="h-4 w-4" />
+                            <span className="text-sm">Move to Content</span>
+                          </>
                         )}
                       </button>
                       <button

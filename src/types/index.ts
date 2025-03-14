@@ -1,7 +1,8 @@
 export interface FormData {
-  location: string;
-  country: string;
-  state: string;
+  location: {
+    country: string;
+    state: string;
+  };
   industries: string[];
   companySize: string;
   additionalIndustries?: string;
@@ -9,7 +10,10 @@ export interface FormData {
 
 export interface GenerationHistory {
   id: string;
-  location: string;
+  location: {
+    country: string;
+    state: string;
+  };
   industries: string[];
   companySize: string;
   additionalIndustries?: string;
@@ -19,4 +23,6 @@ export interface GenerationHistory {
   sheetLink?: string;
   sheetId?: string;
   errorMessage?: string;
+  productName: string;
+  productDescription: string;
 }

@@ -1,6 +1,6 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import Layout from './components/Layout';
+import Layout from './components/layout/Layout';
 import GenerateLeads from './pages/GenerateLeads';
 import LeadsTable from './pages/LeadsTable';
 import ContentTable from './pages/ContentTable';
@@ -15,7 +15,7 @@ import KnowledgeBase from './pages/KnowledgeBase';
 import SocialMediaPosts from './pages/SocialMediaPosts';
 import BrochureGeneration from './pages/BrochureGeneration';
 import VideoGeneration from './pages/VideoGeneration';
-import ProtectedRoute from './components/ProtectedRoute';
+import ProtectedRoute from './components/routes/ProtectedRoute';
 import GenerationHistory from './pages/GenerationHistory';
 
 function App() {

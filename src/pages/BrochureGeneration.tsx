@@ -1,17 +1,17 @@
 import React, { useState, useRef } from 'react';
 import { FileType, Sparkles, Loader2, List, Plus, CheckCircle, FileText, Eye, X } from 'lucide-react';
-import { FormInput } from '../components/FormInput';
-import { FormTextArea } from '../components/FormTextArea';
+import { FormInput } from '../components/forms/FormInput';
+import { FormTextArea } from '../components/forms/FormTextArea';
 import { useToast } from '../contexts/ToastContext';
 import { useIdeas } from '../contexts/IdeasContext';
 import { useBrochures } from '../contexts/BrochureContext';
-import { IdeasSidebar } from '../components/IdeasSidebar';
-import { BrochuresSidebar } from '../components/BrochuresSidebar';
-import { BrochureTemplate } from '../components/BrochureTemplate';
-import { BrochurePreview } from '../components/BrochurePreview';
-import { BrochureEditor } from '../components/BrochureEditor';
+import { IdeasSidebar } from '../components/sidebar/IdeasSidebar';
+import { BrochuresSidebar } from '../components/brochure/BrochuresSidebar';
+import { BrochureTemplate } from '../components/brochure/BrochureTemplate';
+import { BrochurePreview } from '../components/brochure/BrochurePreview';
+import { BrochureEditor } from '../components/brochure/BrochureEditor';
 import { brochureTemplates } from '../lib/brochureTemplates';
-import { ImageUpload } from '../components/ImageUpload';
+import { ImageUpload } from '../components/integrations/ImageUpload';
 
 interface BrochureTheme {
   title: string;

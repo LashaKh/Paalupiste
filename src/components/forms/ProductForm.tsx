@@ -2,11 +2,13 @@ import React, { useState, useMemo } from 'react';
 import { Building2, MapPin, Users, Sparkles, Loader2, Check } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { FormInput } from './FormInput';
-import { useAuth } from '../contexts/AuthContext';
-import { useToast } from '../hooks/useToast';
-import { useGenerationHistory } from '../contexts/GenerationHistoryContext';
-import { LeadGenerationService } from '../lib/LeadGenerationService';
-import { SuccessModal } from './SuccessModal';
+import { useAuth } from '../../contexts/AuthContext';
+import { useToast } from '../../contexts/ToastContext';
+import { useGenerationHistory } from '../../contexts/GenerationHistoryContext';
+import { LeadGenerationService } from '../../lib/LeadGenerationService';
+import { SuccessModal } from '../ui/SuccessModal';
+import { FormData, GenerationHistory } from '../../types';
+import { v4 as uuidv4 } from 'uuid';
 
 const INDUSTRIES = [
   'Construction & Civil Engineering',
@@ -256,15 +258,11 @@ export default function ProductForm() {
   const leadGenService = useMemo(() => new LeadGenerationService(), []);
 
   const handleIndustryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const options = e.target.options;
-    const selected = [];
-    for (let i = 0; i < options.length; i++) {
-      if (options[i].selected) {
-        selected.push(options[i].value);
-      }
-    }
-    setSelectedIndustries(selected);
-    setFormData(prev => ({ ...prev, industries: selected }));
+    const selected: string[] = Array.from(e.target.selectedOptions).map(option => option.value);
+    setFormData(prev => ({
+      ...prev,
+      industries: selected
+    }));
   };
 
   const handleLocationChange = (field: 'country' | 'state') => (value: string) => {
@@ -272,9 +270,7 @@ export default function ProductForm() {
       ...prev,
       location: {
         ...prev.location,
-        [field]: value,
-        // Reset state when country changes
-        ...(field === 'country' && { state: '' })
+        [field]: value
       }
     }));
   };
@@ -287,68 +283,59 @@ export default function ProductForm() {
       navigate('/login');
       return;
     }
-    
+
     setIsLoading(true);
+    setGenerationStatus('');
 
     try {
-      const { success, sheetId, sheetLink, error } = await leadGenService.generateLeads(
-        formData,
-        {
-          onStatusChange: (status, message) => {
-            setGenerationStatus(message);
-          },
-          onComplete: (sheetId, sheetLink) => {
-            setSuccessSheetLink(sheetLink);
-            addGeneration({
-              productName: "Lead Generation",
-              productDescription: `Generated leads for ${formData.industries.join(", ")} in ${formData.location.country}${formData.location.state ? `, ${formData.location.state}` : ''}`,
-              location: `${formData.location.country} - ${formData.location.state}`,
-              industries: formData.industries,
-              companySize: formData.companySize,
-              additionalIndustries: formData.additionalIndustries,
-              status: 'success',
-              sheetLink,
-              sheetId,
-              timestamp: new Date().toISOString()
-            });
-            setFormData(initialFormData);
-          },
-          onError: (error) => {
-            showToast(error.message, 'error');
-            addGeneration({
-              productName: "Lead Generation",
-              productDescription: `Failed lead generation for ${formData.industries.join(", ")} in ${formData.location.country}${formData.location.state ? `, ${formData.location.state}` : ''}`,
-              location: `${formData.location.country} - ${formData.location.state}`,
-              industries: formData.industries,
-              companySize: formData.companySize,
-              additionalIndustries: formData.additionalIndustries,
-              status: 'error',
-              errorMessage: error.message,
-              timestamp: new Date().toISOString()
-            });
-          }
+      const response = await leadGenService.generateLeads(formData, {
+        onStatusChange: (status, message) => {
+          setGenerationStatus(message);
+        },
+        onComplete: (sheetId, sheetLink) => {
+          setSuccessSheetLink(sheetLink);
+          addGeneration({
+            productName: "Lead Generation",
+            productDescription: `Generated leads for ${formData.industries.join(", ")} in ${formData.location.country}${formData.location.state ? `, ${formData.location.state}` : ''}`,
+            location: {
+              country: formData.location.country,
+              state: formData.location.state
+            },
+            industries: formData.industries,
+            companySize: formData.companySize,
+            additionalIndustries: formData.additionalIndustries,
+            timestamp: new Date().toISOString(),
+            status: 'success'
+          });
+          setGenerationStatus('success');
+        },
+        onError: (error) => {
+          showToast(error.message, 'error');
+          addGeneration({
+            productName: "Lead Generation",
+            productDescription: `Failed lead generation for ${formData.industries.join(", ")} in ${formData.location.country}${formData.location.state ? `, ${formData.location.state}` : ''}`,
+            location: {
+              country: formData.location.country,
+              state: formData.location.state
+            },
+            industries: formData.industries,
+            companySize: formData.companySize,
+            additionalIndustries: formData.additionalIndustries,
+            status: 'error',
+            errorMessage: error.message,
+            timestamp: new Date().toISOString()
+          });
+          setGenerationStatus('error');
         }
-      );
-      
-      if (!success && error) {
-        throw new Error(error);
+      });
+
+      if (!response.success && response.error) {
+        throw new Error(response.error);
       }
     } catch (error) {
-      const errorMessage = error instanceof Error 
-        ? error.message 
-        : 'An unexpected error occurred during lead generation';
-      
+      const errorMessage = error instanceof Error ? error.message : 'Failed to generate leads';
       showToast(errorMessage, 'error');
-      
-      addGeneration({
-        location: `${formData.location.country} - ${formData.location.state}`,
-        industries: formData.industries,
-        companySize: formData.companySize,
-        additionalIndustries: formData.additionalIndustries,
-        status: 'error',
-        errorMessage,
-        timestamp: new Date().toISOString()
-      });
+      setGenerationStatus('error');
     } finally {
       setIsLoading(false);
     }
@@ -500,7 +487,7 @@ export default function ProductForm() {
           {isLoading ? (
             <>
               <Loader2 className="animate-spin -ml-1 mr-2 h-5 w-5" />
-              {generationStatus || 'Generating Leads...'}
+              {generationStatus === 'success' ? 'Leads Generated Successfully' : generationStatus === 'error' ? 'Failed to Generate Leads' : 'Generating Leads...'}
             </>
           ) : (
             <>

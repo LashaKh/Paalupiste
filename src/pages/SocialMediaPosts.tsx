@@ -1,13 +1,14 @@
 import React, { useState, useRef } from 'react';
 import { Share2, Sparkles, Loader2, Plus, CheckCircle, FileText } from 'lucide-react';
-import { FormInput } from '../components/FormInput';
-import { FormTextArea } from '../components/FormTextArea';
-import { FormSelect } from '../components/FormSelect';
+import { FormInput } from '../components/forms/FormInput';
+import { FormTextArea } from '../components/forms/FormTextArea';
+import { FormSelect } from '../components/forms/FormSelect';
 import { useToast } from '../hooks/useToast';
 import { useIdeas } from '../contexts/IdeasContext';
 import { useSocialPosts } from '../contexts/SocialPostsContext';
-import { IdeasSidebar } from '../components/IdeasSidebar';
-import { SocialPostsSidebar } from '../components/SocialPostsSidebar';
+import { IdeasSidebar } from '../components/sidebar/IdeasSidebar';
+import { SocialPostsSidebar } from '../components/sidebar/SocialPostsSidebar';
+import { SocialInstructions } from '../components/shared/instructions';
 
 interface SocialTheme {
   title: string;
@@ -164,6 +165,9 @@ export default function SocialMediaPosts() {
           Create engaging social media content for LinkedIn and Facebook to showcase Paalupiste's solutions
         </p>
       </div>
+
+      {/* Instructions Menu */}
+      <SocialInstructions />
 
       {/* Sidebar Button */}
       <div className="fixed left-4 top-20 z-50">

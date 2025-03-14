@@ -1,12 +1,13 @@
 import React, { useState, useRef } from 'react';
 import { Mail, Sparkles, Loader2, List, Plus, CheckCircle, FileText } from 'lucide-react';
-import { FormInput } from '../components/FormInput';
-import { FormTextArea } from '../components/FormTextArea';
+import { FormInput } from '../components/forms/FormInput';
+import { FormTextArea } from '../components/forms/FormTextArea';
 import { useToast } from '../contexts/ToastContext';
 import { useNewsletters } from '../contexts/NewsletterContext';
 import { useIdeas } from '../contexts/IdeasContext';
-import { NewsletterSidebar } from '../components/NewsletterSidebar';
-import { IdeasSidebar } from '../components/IdeasSidebar';
+import { NewsletterSidebar } from '../components/sidebar/NewsletterSidebar';
+import { IdeasSidebar } from '../components/sidebar/IdeasSidebar';
+import { NewsletterInstructions } from '../components/shared/instructions';
 
 interface NewsletterTheme {
   title: string;
@@ -70,13 +71,13 @@ export default function NewsletterGeneration() {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      const data = await parseResponse(response);
+      const data = await response.json();
       
-      if (!data.articles || !Array.isArray(data.articles)) {
-        throw new Error('Invalid response structure: missing articles array');
+      if (!Array.isArray(data)) {
+        throw new Error('Invalid response structure: expected an array of themes');
       }
 
-      setGeneratedThemes(data.articles);
+      setGeneratedThemes(data);
       showToast('Newsletter themes generated successfully', 'success');
     } catch (error) {
       showToast(error instanceof Error ? error.message : 'Failed to generate themes', 'error');
@@ -210,6 +211,9 @@ export default function NewsletterGeneration() {
           Create engaging newsletters to keep clients updated on Paalupiste's latest developments
         </p>
       </div>
+
+      {/* Instructions Menu */}
+      <NewsletterInstructions />
 
       {/* Sidebar Buttons */}
       <div className="fixed left-4 top-20 z-50">

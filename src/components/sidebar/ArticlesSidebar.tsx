@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { FileText, Trash2, X, ExternalLink, MoveRight, Loader2 } from 'lucide-react';
-import { useArticles, Article } from '../contexts/ArticlesContext';
-import { useToast } from '../contexts/ToastContext';
+import { useArticles, Article } from '../../contexts/ArticlesContext';
+import { useToast } from '../../contexts/ToastContext';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { supabase } from '../lib/supabase';
+import { supabase } from '../../lib/supabase';
 
 interface ArticlesSidebarProps {
   isOpen: boolean;

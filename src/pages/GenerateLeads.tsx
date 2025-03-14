@@ -1,5 +1,5 @@
 import React from 'react';
-import ProductForm from '../components/ProductForm';
+import ProductForm from '../components/forms/ProductForm';
 import { Sparkles } from 'lucide-react';
 
 export default function GenerateLeads() {

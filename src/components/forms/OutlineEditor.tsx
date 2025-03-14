@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { X, Save, Edit2, Eye, Loader2, FileText, Send } from 'lucide-react';
-import { useToast } from '../contexts/ToastContext';
-import { useOutlines } from '../contexts/OutlineContext';
+import { useToast } from '../../contexts/ToastContext';
+import { useOutlines } from '../../contexts/OutlineContext';
 import { marked } from 'marked';
 import { v4 as uuidv4 } from 'uuid';
 
