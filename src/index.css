@@ -1,0 +1,178 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-white text-gray-900;
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-blue-900/10;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-blue-900/30 rounded-full hover:bg-blue-900/50;
+}
+
+/* Markdown Preview Styles */
+.markdown-preview {
+  font-family: ui-sans-serif, system-ui, -apple-system;
+  line-height: 1.8;
+  background: white;
+  border-radius: 0.75rem;
+}
+
+.markdown-preview :is(h1, h2, h3, h4, h5, h6) {
+  margin-top: 1.5em;
+  margin-bottom: 0.5em;
+  line-height: 1.2;
+}
+
+.markdown-preview h1:first-child {
+  margin-top: 0;
+}
+
+.markdown-preview h1 {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #1a202c;
+  border-bottom: 2px solid #e2e8f0;
+  padding-bottom: 0.5rem;
+}
+
+.markdown-preview h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #1a202c;
+  position: relative;
+  padding-left: 1rem;
+}
+
+.markdown-preview h2::before {
+  content: '';
+  position: absolute;
+  left: -1rem;
+  top: 0.5rem;
+  width: 4px;
+  height: 1rem;
+  background: #FF3A2D;
+  border-radius: 2px;
+}
+
+.markdown-preview h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #2d3748;
+  padding-left: 1rem;
+}
+
+.markdown-preview p {
+  margin-bottom: 1rem;
+  color: #4a5568;
+  line-height: 1.8;
+}
+
+.markdown-preview ul {
+  list-style-type: disc;
+  padding-left: 1.5rem;
+  margin-bottom: 1rem;
+  margin-top: 0.75rem;
+}
+
+.markdown-preview li {
+  margin-bottom: 0.5rem;
+  color: #4a5568;
+  padding-left: 0.25rem;
+}
+
+.markdown-preview code {
+  background: #f7fafc;
+  padding: 0.2em 0.4em;
+  border-radius: 0.25rem;
+  font-size: 0.875em;
+  color: #805ad5;
+}
+
+.markdown-preview pre {
+  background: #2d3748;
+  color: #e2e8f0;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  overflow-x: auto;
+  margin: 1.5rem 0;
+}
+
+.markdown-preview pre code {
+  background: transparent;
+  color: inherit;
+  padding: 0;
+  font-size: 0.875rem;
+}
+
+.markdown-preview blockquote {
+  border-left: 4px solid #FF3A2D;
+  padding-left: 1rem;
+  margin: 1.5rem 0;
+  color: #4a5568;
+  font-style: italic;
+}
+
+.markdown-preview hr {
+  border: 0;
+  border-top: 2px solid #e2e8f0;
+  margin: 2rem 0;
+}
+
+/* Smooth scrolling for anchor links */
+.markdown-preview {
+  scroll-behavior: smooth;
+}
+
+/* Hover effect for headings with anchors */
+.markdown-preview h2:hover,
+.markdown-preview h3:hover {
+  color: #FF3A2D;
+  transition: color 0.2s ease;
+}
+
+/* Toast Animation */
+@keyframes slide-in {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-in {
+  animation: slide-in 0.3s ease-out forwards;
+}
+
+/* Custom scrollbar for template selection */
+.scrollbar-thin {
+  scrollbar-width: thin;
+}
+
+.scrollbar-thumb-gray-200::-webkit-scrollbar-thumb {
+  background-color: rgb(229 231 235);
+  border-radius: 9999px;
+}
+
+.scrollbar-track-transparent::-webkit-scrollbar-track {
+  background-color: transparent;
+}
+
+.scrollbar-thin::-webkit-scrollbar {
+  height: 6px;
+}
