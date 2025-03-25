@@ -35,65 +35,48 @@ export default function VideoPlayer({
 
   // Load and prepare video when clip changes
   useEffect(() => {
-    if (!videoRef.current || !selectedClip) return;
+    const loadVideo = async () => {
+      if (!selectedClip || !videoRef.current) return;
+      const video = videoRef.current;
 
-    const prepareVideo = async () => {
       try {
-        // Reset video element
-        videoRef.current.pause();
-        videoRef.current.removeAttribute('src');
-        videoRef.current.load();
+        video.pause();
+        video.removeAttribute('src');
+        video.load();
 
-        // Set new source and properties
-        videoRef.current.src = selectedClip.source;
-        videoRef.current.currentTime = selectedClip.trim?.start || 0;
-        
-        // Wait for video to be ready
-        await videoRef.current.load();
-        setIsVideoReady(true);
-        
-        // Store original video dimensions
+        video.src = selectedClip.source;
+        video.currentTime = selectedClip.trim?.start || 0;
+        await video.load();
+
         setVideoDimensions({
-          width: videoRef.current.videoWidth,
-          height: videoRef.current.videoHeight
+          width: video.videoWidth ?? 0,
+          height: video.videoHeight ?? 0
         });
 
         if (isPlaying) {
-          try {
-            await videoRef.current.play();
-          } catch (error) {
-            onPlayStateChange(false);
-            throw error;
-          }
+          await video.play();
+        } else {
+          video.pause();
         }
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'Failed to prepare video';
-        onError(errorMessage);
-        setIsVideoReady(false);
+        console.error('Error loading video:', error);
       }
     };
 
-    prepareVideo();
-
-    return () => {
-      if (videoRef.current) {
-        videoRef.current.pause();
-        videoRef.current.removeAttribute('src');
-        videoRef.current.load();
-      }
-    };
-  }, [selectedClip?.id]);
+    loadVideo();
+  }, [selectedClip, isPlaying]);
 
   // Handle play state changes
   useEffect(() => {
     if (!videoRef.current || !isVideoReady) return;
+    const video = videoRef.current;
 
     const playVideo = async () => {
       try {
         if (isPlaying) {
-          await videoRef.current.play();
+          await video.play();
         } else {
-          videoRef.current.pause();
+          video.pause();
         }
       } catch (error) {
         onPlayStateChange(false);

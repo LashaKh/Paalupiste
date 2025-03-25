@@ -15,8 +15,8 @@ export interface VideoClip {
   source: string;
   duration: number;
   trim?: {
-    start: number;
-    end: number;
+    start?: number;
+    end?: number;
   };
   speed: number;
   volume: number;
@@ -39,13 +39,13 @@ export interface VideoFilters {
 }
 
 export interface VideoTransform {
-  rotate: number;
-  scaleX: number;
-  scaleY: number;
-  cropTop: number;
-  cropRight: number;
-  cropBottom: number;
-  cropLeft: number;
+  rotate?: number;
+  scaleX?: number;
+  scaleY?: number;
+  cropTop?: number;
+  cropRight?: number;
+  cropBottom?: number;
+  cropLeft?: number;
 }
 
 export interface AudioTrack {

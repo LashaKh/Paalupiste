@@ -22,10 +22,13 @@ interface TimelineTrackProps {
   trackType: 'video' | 'audio' | 'text';
   items: TimelineItem[];
   zoom: number;
-  onSelectItem: (id: string) => void;
+  onSelectItem: (clipId: string) => void;
+  selectedClipId: string | null;
+  onItemDragStart?: (itemId: string) => void;
+  onItemDragEnd?: () => void;
+  onItemDrag?: (delta: number) => void;
   currentTime: number;
   onDeleteItem?: (id: string) => void;
-  onDragStart?: (id: string, initialX: number) => void;
   onTrimStart: (id: string, time: number) => void;
   onTrimEnd: (id: string, time: number) => void;
   project: VideoProject;
@@ -36,9 +39,12 @@ export default function TimelineTrack({
   items,
   zoom,
   onSelectItem,
+  selectedClipId,
+  onItemDragStart,
+  onItemDragEnd,
+  onItemDrag,
   currentTime,
   onDeleteItem,
-  onDragStart,
   onTrimStart,
   onTrimEnd,
   project,
@@ -286,8 +292,8 @@ export default function TimelineTrack({
                 className="absolute inset-0 cursor-grab active:cursor-grabbing"
                 onMouseDown={(e) => {
                   e.stopPropagation();
-                  if (onDragStart) {
-                    onDragStart(item.id, e.clientX);
+                  if (onItemDragStart) {
+                    onItemDragStart(item.id);
                   }
                 }}
               />
