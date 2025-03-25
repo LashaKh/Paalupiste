@@ -682,37 +682,21 @@ export default function LeadGenHistory() {
   
   // Enrich leads with additional data
   const enrichData = async (type: 'contacts' | 'company') => {
-    if (!selectedEntryId) return;
+    if (!selectedEntry || !user) return;
     
-    const entry = data.find(e => e.id === selectedEntryId);
-    if (!entry?.sheetId) {
+    if (!selectedEntry.sheetId) {
       showToast('No sheet ID found for this entry', 'error');
-      return;
-    }
-
-    if (!user?.email) {
-      showToast('User email not available', 'error');
       return;
     }
 
     setIsEnriching(type);
     try {
-      const webhookUrl = type === 'contacts' 
-        ? 'https://hook.eu2.make.com/tyxev7vqtidsni83cqouvg6elo45pk5v'
-        : 'https://hook.eu2.make.com/02x72t2um7lwt6lvspjftcrrq5kweq5h';
-
-      const payload = {
-        sheetId: entry.sheetId,
-        userEmail: user.email,
-        type: type === 'contacts' ? 'enrich_contacts' : 'enrich_companies'
-      };
-
-      const response = await fetch(webhookUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-
+      // Get the webhook response
+      const response = await fetch(`https://hook.eu2.make.com/tyxev7vqtidsni83cqouvg6elo45pk5v?sheetId=${selectedEntry.sheetId}`);
+      const result = await response.text();
+      
+      console.log('Enrichment webhook response:', result);
+      
       if (!response.ok) {
         throw new Error('Failed to start enrichment process');
       }
@@ -720,7 +704,8 @@ export default function LeadGenHistory() {
       showToast(`${type === 'contacts' ? 'Contact' : 'Company'} enrichment started`, 'success');
       setShowEnrichModal(null);
     } catch (error) {
-      showToast('Failed to start enrichment process', 'error');
+      console.error('Enrichment error:', error);
+      showToast('Failed to start enrichment process: ' + (error instanceof Error ? error.message : 'Unknown error'), 'error');
     } finally {
       setIsEnriching(null);
     }
@@ -794,8 +779,7 @@ export default function LeadGenHistory() {
           </button>
           <button
             onClick={() => {
-              console.log('Start Search button clicked');
-              console.log('Selected Entry when clicking Start Search:', selectedEntry);
+              console.log('Starting enrichment for entry:', selectedEntry);
               enrichData('contacts');
             }}
             className="px-4 py-2 rounded-lg bg-primary text-white hover:bg-primary-hover flex items-center"
@@ -804,12 +788,12 @@ export default function LeadGenHistory() {
             {isEnriching === 'contacts' ? (
               <>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Processing...
+                Enriching...
               </>
             ) : (
               <>
                 <UserPlus className="w-4 h-4 mr-2" />
-                Start Search
+                Enrich with Decision Makers
               </>
             )}
           </button>
@@ -1257,13 +1241,23 @@ export default function LeadGenHistory() {
             <div className="flex justify-center mt-6 pt-6 border-t border-gray-200">
               <button
                 onClick={() => {
-                  console.log('Opening enrich modal with selectedEntry:', selectedEntry);
-                  setShowEnrichModal('contacts');
+                  console.log('Starting enrichment for entry:', selectedEntry);
+                  enrichData('contacts');
                 }}
                 className="w-full inline-flex items-center justify-center px-4 py-3 rounded-xl border border-gray-300 text-gray-700 hover:bg-gray-50 transition-all duration-200 font-medium hover:border-primary/30 hover:text-primary"
+                disabled={isEnriching !== null}
               >
-                <UserPlus className="w-5 h-5 mr-2" />
-                Enrich with Decision Makers
+                {isEnriching === 'contacts' ? (
+                  <>
+                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                    Enriching...
+                  </>
+                ) : (
+                  <>
+                    <UserPlus className="w-5 h-5 mr-2" />
+                    Enrich with Decision Makers
+                  </>
+                )}
               </button>
             </div>
             
