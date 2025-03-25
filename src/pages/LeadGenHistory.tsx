@@ -553,57 +553,104 @@ export default function LeadGenHistory() {
   
   // Import leads from webhook
   const importLeads = async () => {
-    if (!selectedEntryId) return;
+    if (!selectedEntry || !user) return;
     
-    const entry = data.find(e => e.id === selectedEntryId);
-    if (!entry?.sheetId) {
-      showToast('No sheet ID found for this entry', 'error');
-      return;
-    }
-
     setIsImporting(true);
+    let leadsData: any[] = [];
+    
     try {
-      const webhookUrl = LeadGenerationService.getImportWebhookUrl();
-      console.log('Using import webhook URL:', webhookUrl);
-      
-      const result = await fetch(webhookUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          sheetId: entry.sheetId,
-          type: 'import_leads'
-        })
-      });
+      const sheetId = selectedEntry.sheetId;
+      if (!sheetId) {
+        throw new Error('No sheet ID found for this entry');
+      }
 
-      if (!result.ok) {
+      // Get the webhook response
+      const response = await fetch(`https://hook.eu2.make.com/neljqr5sqfmzh0cfagnkzdl8a9nmtr3b?sheetId=${sheetId}`);
+      const result = await response.text(); // Get response as text instead of JSON
+      
+      console.log('Raw webhook response:', result);
+      
+      try {
+        // Clean up the response by removing empty arrays and trailing commas
+        const cleanedResult = result
+          .split('\n')
+          .filter(line => line.trim() !== '["","","","","","",""]' && line.trim() !== '')
+          .join('\n');
+        
+        // Parse the cleaned result as JSON
+        leadsData = JSON.parse(`[${cleanedResult}]`);
+        
+        console.log('Parsed leads data:', leadsData);
+      } catch (parseError: unknown) {
+        console.error('JSON Parse Error:', parseError);
+        throw new Error('Failed to parse API response');
+      }
+      
+      // Filter out any remaining empty or invalid entries
+      leadsData = leadsData.filter(lead => 
+        Array.isArray(lead) && 
+        lead.some(field => field !== '') && 
+        lead.length === 7
+      );
+      
+      if (leadsData.length === 0) {
+        throw new Error('No valid leads found in the response');
+      }
+
+      // Create a new import record
+      const newImport = await createImport({
+        name: `${selectedEntry.productName} - ${format(new Date(selectedEntry.timestamp), 'PP')}`,
+        source: 'Lead Generation',
+        sourceDetails: {
+          sheetId,
+          productName: selectedEntry.productName,
+          location: selectedEntry.location,
+          industries: selectedEntry.industries
+        },
+        notes: `Imported from lead generation for ${selectedEntry.productName} in ${formatLocation(selectedEntry.location)}`,
+        tags: ['automated', ...selectedEntry.industries],
+        historyId: selectedEntry.id
+      });
+      
+      if (!newImport) {
+        throw new Error('Failed to create import record');
+      }
+
+      // Format the leads data to match the database schema
+      const formattedLeads = leadsData.map(lead => ({
+        companyName: lead[0] || '',
+        website: lead[1] || '',
+        company_description: lead[2] || '',
+        decisionMakerName: lead[3] || '',
+        decisionMakerTitle: lead[4] || '',
+        decisionMakerEmail: lead[5] || '',
+        decisionMakerLinkedIn: lead[6] || '',
+        status: 'new' as const,
+        priority: 'medium' as const,
+        lastContactDate: new Date().toISOString(),
+        notes: `Imported from "${selectedEntry.productName}" lead generation`,
+        import_id: newImport.id,
+        history_id: selectedEntry.id,
+        user_id: user.id
+      }));
+      
+      // Import leads using the new function with formatted data
+      const importSuccess = await importLeadsToImport(newImport.id, formattedLeads);
+      
+      if (!importSuccess) {
         throw new Error('Failed to import leads');
       }
 
-      const leadsData = await result.json();
-      
-      if (!Array.isArray(leadsData)) {
-        throw new Error('Invalid response format');
-      }
-
-      const importResult = await createImport({
-        name: `${entry.productName} - Import`,
-        source: 'Lead Generation',
-        historyId: entry.id
-      });
-
-      if (!importResult) {
-        throw new Error('Failed to create import');
-      }
-
-      await importLeadsToImport(importResult.id, leadsData);
-      
-      setImportedEntries(new Set([...importedEntries, entry.id]));
-      showToast('Leads imported successfully', 'success');
+      // Update UI state
+      setImportedEntries(prev => new Set([...prev, selectedEntry.id]));
       setShowImportModal(false);
+      showToast('Leads imported successfully', 'success');
+
+      // Navigate to the leads table
+      navigate('/app/leads/table');
     } catch (error) {
-      showToast('Failed to import leads', 'error');
+      console.error('Error importing leads:', error);
+      showToast('Failed to import leads: ' + (error instanceof Error ? error.message : 'Unknown error'), 'error');
     } finally {
       setIsImporting(false);
     }
