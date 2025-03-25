@@ -682,7 +682,10 @@ export default function LeadGenHistory() {
   
   // Enrich leads with additional data
   const enrichData = async (type: 'contacts' | 'company') => {
-    if (!selectedEntry || !user) return;
+    if (!selectedEntry || !user) {
+      showToast('No entry selected or user not logged in', 'error');
+      return;
+    }
     
     if (!selectedEntry.sheetId) {
       showToast('No sheet ID found for this entry', 'error');
@@ -692,27 +695,29 @@ export default function LeadGenHistory() {
     setIsEnriching(type);
     try {
       // Get the webhook response for enrichment
-      const response = await fetch(`https://hook.eu2.make.com/tyxev7vqtidsni83cqouvg6elo45pk5v`, {
+      const response = await fetch('https://hook.eu2.make.com/onkwar3s8ivyyz8wjve5g4x4pnp1l18j', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           sheetId: selectedEntry.sheetId,
-          type: 'enrich_contacts'
+          userEmail: user.email,
+          location: selectedEntry.location,
+          industries: selectedEntry.industries
         })
       });
       
       console.log('Enrichment webhook response:', response);
       
       if (!response.ok) {
-        throw new Error('Failed to start enrichment process');
+        throw new Error(`Failed to start enrichment process: ${response.status}`);
       }
 
       const result = await response.text();
       console.log('Enrichment result:', result);
 
-      showToast(`${type === 'contacts' ? 'Contact' : 'Company'} enrichment started`, 'success');
+      showToast('Decision maker search process started', 'success');
       setShowEnrichModal(null);
     } catch (error) {
       console.error('Enrichment error:', error);
