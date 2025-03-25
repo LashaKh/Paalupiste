@@ -32,24 +32,21 @@ export default function NewsletterGeneration() {
     const text = await response.text();
     
     try {
-      // Extract Subject Line as title
       const subjectLineMatch = text.match(/\*\*Subject Line\*\*: (.+?)(?:\n|$)/);
       if (!subjectLineMatch) {
         throw new Error('Could not find Subject Line in response');
       }
 
-      // Remove any markdown code block markers
       const cleanContent = text
-        .replace(/^```\w*\n?/gm, '')  // Remove opening code blocks
-        .replace(/```$/gm, '')        // Remove closing code blocks
-        .trim();                      // Clean up whitespace
+        .replace(/^```\w*\n?/gm, '')
+        .replace(/```$/gm, '')
+        .trim();
 
       return {
         NewsletterTitle: title || 'Newsletter',
         Newsletter: cleanContent
       };
     } catch (error) {
-      console.error('Error parsing newsletter response:', error);
       throw new Error('Failed to parse newsletter response');
     }
   };
@@ -127,7 +124,7 @@ export default function NewsletterGeneration() {
   const handleGenerateOutline = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    const TIMEOUT_DURATION = 120000; // 2 minutes
+    const TIMEOUT_DURATION = 120000;
     
     if (!title || !description) {
       showToast('Please fill in all fields', 'error');
@@ -181,18 +178,11 @@ export default function NewsletterGeneration() {
       }
 
     } catch (error) {
-      let errorMessage = 'Failed to generate newsletter';
-      
-      if (error instanceof Error) {
-        if (error.name === 'AbortError') {
-          errorMessage = 'Newsletter generation is taking longer than expected. Please try again.';
-        } else {
-          errorMessage = error.message;
-        }
-      }
+      const errorMessage = error instanceof Error && error.name === 'AbortError'
+        ? 'Newsletter generation is taking longer than expected. Please try again.'
+        : error instanceof Error ? error.message : 'Failed to generate newsletter';
 
       showToast(errorMessage, 'error');
-      console.error('Newsletter generation error:', error);
     } finally {
       setIsGeneratingOutline(false);
     }

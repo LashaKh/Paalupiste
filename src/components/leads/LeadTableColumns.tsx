@@ -31,17 +31,6 @@ export function getColumns({
   handleDelete,
   handleConvert,
 }: GetColumnsProps): ColumnDef<Lead, any>[] {
-  // Debug logging
-  console.log('getColumns called with:', {
-    editingCell,
-    hasSetEditingCell: !!setEditingCell,
-    hasHandleSaveEdit: !!handleSaveEdit,
-    hasHandleEditClick: !!handleEditClick,
-    hasHandleView: !!handleView,
-    hasHandleDelete: !!handleDelete,
-    hasHandleConvert: !!handleConvert
-  });
-
   const columns = [
     {
       id: 'select',
@@ -120,9 +109,7 @@ export function getColumns({
       ),
       cell: (info) => {
         const websiteValue = info.getValue();
-        console.log('Website cell value:', websiteValue, typeof websiteValue);
         
-        // Helper function to format website URL
         const formatWebsiteUrl = (url: string) => {
           if (!url || typeof url !== 'string' || url.trim() === '') {
             return null;
@@ -176,12 +163,7 @@ export function getColumns({
         </div>
       ),
       cell: (info) => {
-        // Get description directly from company_description field only
         const description = info.getValue();
-        console.log('DEBUG - Description cell access path:', 'company_description');
-        console.log('DEBUG - Description getValue():', description);
-        console.log('DEBUG - Description from row.original:', info.row.original.company_description);
-        console.log('DEBUG - Row original keys:', Object.keys(info.row.original));
         
         return editingCell?.id === info.row.original.id && editingCell?.field === 'company_description' ? (
           <textarea
@@ -545,6 +527,5 @@ export function getColumns({
     }),
   ];
 
-  console.log('getColumns returning columns:', columns);
   return columns;
 }

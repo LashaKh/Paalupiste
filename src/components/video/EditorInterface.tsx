@@ -7,7 +7,7 @@ import PropertyPanel from './panels/PropertyPanel';
 import VideoPlayer from './VideoPlayer';
 import { usePlaybackController } from './PlaybackController';
 import { useToast } from '../../hooks/useToast';
-import { VideoProject } from '../../types/video';
+import { VideoProject, VideoClip } from '../../types/video';
 
 interface EditorInterfaceProps {
   project: VideoProject;
@@ -34,7 +34,7 @@ export default function EditorInterface({
     selectedClipId,
     selectedClip,
     isLoadingVideo,
-   setSelectedClipId,
+    setSelectedClipId,
     handleClipEnd,
     selectClip,
     handleTimeUpdate,

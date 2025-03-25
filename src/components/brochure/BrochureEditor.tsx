@@ -41,10 +41,13 @@ export function BrochureEditor({ initialContent = '', onContentChange }: Brochur
 
   const handleDownloadPDF = async () => {
     setIsGeneratingPDF(true);
+    const iframe = previewRef.current;
+    
     try {
-      const previewDoc = previewRef.current?.contentDocument;
-      if (!previewDoc) throw new Error('Preview not available');
-
+      if (!iframe) throw new Error('Preview iframe not available');
+      const previewDoc = iframe.contentDocument;
+      if (!previewDoc) throw new Error('Preview document not available');
+      
       const element = previewDoc.documentElement;
       
       const opt = {
@@ -52,7 +55,11 @@ export function BrochureEditor({ initialContent = '', onContentChange }: Brochur
         filename: 'brochure.pdf',
         image: { type: 'jpeg', quality: 0.98 },
         html2canvas: { scale: 2 },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        jsPDF: { 
+          unit: 'mm' as const, 
+          format: 'a4' as const, 
+          orientation: 'portrait' as 'portrait' | 'landscape'
+        }
       };
 
       await html2pdf().set(opt).from(element).save();

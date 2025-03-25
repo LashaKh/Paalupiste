@@ -95,7 +95,6 @@ const formatLocation = (location: string | { country: string; state?: string }):
     return `${location.country}${location.state ? `, ${location.state}` : ''}`;
   }
   
-  // Check if location is a JSON string and try to parse it
   if (typeof location === 'string' && (location.startsWith('{') || location.startsWith('{"'))) {
     try {
       const parsed = JSON.parse(location);
@@ -103,8 +102,7 @@ const formatLocation = (location: string | { country: string; state?: string }):
         return `${parsed.country}${parsed.state ? `, ${parsed.state}` : ''}`;
       }
     } catch (e) {
-      // If parsing fails, return the original string
-      console.error('Failed to parse location JSON:', e);
+      return String(location);
     }
   }
   
@@ -198,14 +196,11 @@ function extractSheetId(url: string): string | null {
   if (!url) return null;
   
   try {
-    // Try to match the sheet ID pattern in URLs like:
-    // https://docs.google.com/spreadsheets/d/SHEET_ID/edit
     const match = url.match(/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
     if (match && match[1]) {
       return match[1];
     }
     
-    // Handle cases where the URL might be malformed but contains the ID
     const fallbackMatch = url.match(/([a-zA-Z0-9_-]{25,})/);
     if (fallbackMatch && fallbackMatch[1]) {
       return fallbackMatch[1];
@@ -213,7 +208,6 @@ function extractSheetId(url: string): string | null {
     
     return null;
   } catch (error) {
-    console.error('Error extracting sheet ID:', error);
     return null;
   }
 }
@@ -221,7 +215,7 @@ function extractSheetId(url: string): string | null {
 export default function LeadGenHistory() {
   const { user } = useAuth();
   const { showToast } = useToast();
-  const { history = [], deleteGeneration, addGeneration, ensureHistoryEntries, loading: contextLoading } = useGenerationHistory();
+  const { history = [], deleteGeneration, addGeneration, ensureHistoryEntries, loading: contextLoading, refreshGenerations } = useGenerationHistory();
   const [isLoading, setIsLoading] = useState(true);
   const [data, setData] = useState<GenerationEntry[]>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
@@ -249,133 +243,40 @@ export default function LeadGenHistory() {
   const { createImport, importLeadsToImport } = useLeadImports();
   const navigate = useNavigate();
   
-  // Load data when component mounts and when history changes
   useEffect(() => {
-    console.log("History data changed:", history?.length, "entries", "Context loading:", contextLoading);
+    if (!user) return;
     
-    // Don't attempt to load data if the context is still loading
-    if (!contextLoading) {
-      loadData();
-    }
-  }, [history, contextLoading]);
-  
-  // Load initial data when component mounts
-  useEffect(() => {
-    ensureHistoryEntries().catch(error => {
-      console.error("Error ensuring history entries:", error);
-    });
-  }, []);
-  
-  // Load data
-  const loadData = async () => {
-    setIsLoading(true);
-    try {
-      console.log("Loading lead generation history data...");
-      
-      if (!history || history.length === 0) {
-        console.warn("No history data available");
-        setData([]);
-        setStats({
-          totalGenerations: 0,
-          totalLeads: 0,
-          successRate: 0,
-          averageLeadsPerGeneration: 0
-        });
+    const loadData = async () => {
+      try {
+        await ensureHistoryEntries();
+        const processedHistory = history
+          .filter(entry => entry.productName && (entry.status === 'success' || entry.status === 'error'))
+          .map(entry => ({
+            id: entry.id,
+            location: entry.location,
+            industries: entry.industries || [],
+            companySize: entry.companySize,
+            additionalIndustries: entry.additionalIndustries,
+            timestamp: entry.timestamp,
+            status: entry.status === 'completed' ? 'success' : entry.status as 'success' | 'error',
+            sheetLink: entry.sheetLink,
+            sheetId: entry.sheetId,
+            errorMessage: entry.errorMessage,
+            productName: entry.productName || '',
+            productDescription: entry.productDescription || '',
+            leadCount: entry.leadsCount || 0,
+            convertedLeads: 0 // This property doesn't exist in GenerationHistory
+          }));
+        setData(processedHistory);
+      } catch (error) {
+        showToast('Failed to load history data', 'error');
+      } finally {
         setIsLoading(false);
-        return;
       }
-      
-      // In a real implementation, we'd get this data from Supabase or API
-      // For now, we'll use the history from context and enhance it
-      
-      const enhancedHistory = await Promise.all(history.map(async (entry) => {
-        // Get lead count for this generation
-        const { count: leadCount, error: leadError } = await supabase
-          .from('leads')
-          .select('*', { count: 'exact', head: true })
-          .eq('history_id', entry.id);
-          
-        // Get count of converted leads
-        const { count: convertedCount, error: convError } = await supabase
-          .from('leads')
-          .select('*', { count: 'exact', head: true })
-          .eq('history_id', entry.id)
-          .eq('status', 'converted');
-        
-        // Ensure location is properly formatted
-        let location = entry.location;
-        if (typeof location === 'string' && (location.startsWith('{') || location.startsWith('{"'))) {
-          try {
-            location = JSON.parse(location);
-          } catch (e) {
-            console.error('Failed to parse location JSON:', e);
-          }
-        }
-        
-        // Ensure the sheetLink is properly handled
-        let sheetLink = entry.sheetLink;
-        
-        // If entry has sheetId but no sheetLink, construct it
-        if (!sheetLink && entry.sheetId) {
-          sheetLink = `https://docs.google.com/spreadsheets/d/${entry.sheetId}/edit`;
-        }
-        
-        // Make sure the URL has a protocol
-        if (typeof sheetLink === 'string' && sheetLink.trim() && !sheetLink.startsWith('http')) {
-          sheetLink = `https://${sheetLink}`;
-        }
+    };
 
-        // For debugging purposes
-        if (entry.sheetId && !sheetLink) {
-          console.warn('Entry has sheetId but no sheetLink:', entry.id, entry.sheetId);
-        }
-        
-        return {
-          ...entry,
-          location,
-          sheetLink,
-          leadCount: leadError ? 0 : leadCount || 0,
-          convertedLeads: convError ? 0 : convertedCount || 0
-        };
-      }));
-      
-      // Get entries that have already been imported
-      const { data: importedData, error: importedError } = await supabase
-        .from('leads')
-        .select('history_id')
-        .not('history_id', 'is', null);
-        
-      if (importedError) {
-        console.error('Error fetching imported entries:', importedError);
-      } else {
-        // Update imported entries set
-        const importedIds = new Set(importedData?.map(entry => entry.history_id) || []);
-        setImportedEntries(importedIds);
-      }
-      
-      setData(enhancedHistory);
-      
-      // Calculate stats
-      const totalGenerations = enhancedHistory.length;
-      const totalLeads = enhancedHistory.reduce((sum, entry) => sum + (entry.leadCount || 0), 0);
-      const successCount = enhancedHistory.filter(entry => entry.status === 'success').length;
-      const successRate = totalGenerations ? (successCount / totalGenerations) * 100 : 0;
-      const averageLeads = totalGenerations ? totalLeads / totalGenerations : 0;
-
-      setStats({
-        totalGenerations,
-        totalLeads,
-        successRate,
-        averageLeadsPerGeneration: averageLeads
-      });
-      
-    } catch (error) {
-      console.error('Error loading lead generation history:', error);
-      showToast('Failed to load lead generation history', 'error');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    loadData();
+  }, [user, history, ensureHistoryEntries, showToast]);
   
   // Filter data based on status and date range
   const filteredData = useMemo(() => {
@@ -651,124 +552,54 @@ export default function LeadGenHistory() {
   
   // Import leads from webhook
   const importLeads = async () => {
-    if (!selectedEntry || !user) return;
+    if (!selectedEntryId) return;
     
+    const entry = data.find(e => e.id === selectedEntryId);
+    if (!entry?.sheetId) {
+      showToast('No sheet ID found for this entry', 'error');
+      return;
+    }
+
     setIsImporting(true);
-    let leadsData: any[] = [];
-    
     try {
-      const sheetId = selectedEntry.sheetId;
-      if (!sheetId) {
-        throw new Error('No sheet ID found for this entry');
-      }
-
-      // Get the webhook response
-      const response = await fetch(`https://hook.eu2.make.com/neljqr5sqfmzh0cfagnkzdl8a9nmtr3b?sheetId=${sheetId}`);
-      const result = await response.text(); // Get response as text instead of JSON
-      
-      console.log('Raw webhook response:', result);
-      
-      try {
-        // Clean up the response by removing empty arrays and trailing commas
-        const cleanedResult = result
-          .split('\n')
-          .filter(line => line.trim() !== '["","","","","","",""]' && line.trim() !== '')
-          .join('\n');
-        
-        // Parse the cleaned result as JSON
-        leadsData = JSON.parse(`[${cleanedResult}]`);
-        
-        console.log('Parsed leads data:', leadsData);
-      } catch (parseError: unknown) {
-        console.error('JSON Parse Error:', parseError);
-        
-        if (parseError instanceof Error) {
-          console.log('Error position:', parseError.message);
-          
-          // Log the character at the error position
-          const match = parseError.message.match(/position (\d+)/);
-          if (match) {
-            const position = parseInt(match[1]);
-            const char = result.charAt(position);
-            const surrounding = result.substring(Math.max(0, position - 10), position + 10);
-            console.log('Character at error position:', {
-              charCode: char.charCodeAt(0),
-              char,
-              surrounding
-            });
-          }
-          
-          throw new Error(`Failed to parse API response: ${parseError.message}`);
-        }
-        
-        throw new Error('Failed to parse API response: Unknown error');
-      }
-      
-      // Filter out any remaining empty or invalid entries
-      leadsData = leadsData.filter(lead => 
-        Array.isArray(lead) && 
-        lead.some(field => field !== '') && 
-        lead.length === 7
-      );
-      
-      if (leadsData.length === 0) {
-        throw new Error('No valid leads found in the response');
-      }
-
-      // Create a new import record
-      const newImport = await createImport({
-        name: `${selectedEntry.productName} - ${format(new Date(selectedEntry.timestamp), 'PP')}`,
-        source: 'Lead Generation',
-        sourceDetails: {
-          sheetId,
-          productName: selectedEntry.productName,
-          location: selectedEntry.location,
-          industries: selectedEntry.industries
+      const result = await fetch(`https://hook.eu2.make.com/tyxev7vqtidsni83cqouvg6elo45pk5v`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
         },
-        notes: `Imported from lead generation for ${selectedEntry.productName} in ${formatLocation(selectedEntry.location)}`,
-        tags: ['automated', ...selectedEntry.industries],
-        historyId: selectedEntry.id
+        body: JSON.stringify({
+          sheetId: entry.sheetId,
+          type: 'import_leads'
+        })
       });
-      
-      if (!newImport) {
-        throw new Error('Failed to create import record');
-      }
 
-      // Format the leads data to match the database schema
-      const formattedLeads = leadsData.map(lead => ({
-        companyName: lead[0] || '',
-        website: lead[1] || '',
-        company_description: lead[2] || '',
-        decisionMakerName: lead[3] || '',
-        decisionMakerTitle: lead[4] || '',
-        decisionMakerEmail: lead[5] || '',
-        decisionMakerLinkedIn: lead[6] || '',
-        status: 'new' as const,
-        priority: 'medium' as const,
-        lastContactDate: new Date().toISOString(),
-        notes: `Imported from "${selectedEntry.productName}" lead generation`,
-        import_id: newImport.id,
-        history_id: selectedEntry.id,
-        user_id: user.id
-      }));
-      
-      // Import leads using the new function with formatted data
-      const importSuccess = await importLeadsToImport(newImport.id, formattedLeads);
-      
-      if (!importSuccess) {
+      if (!result.ok) {
         throw new Error('Failed to import leads');
       }
 
-      // Update UI state
-      setImportedEntries(prev => new Set([...prev, selectedEntry.id]));
-      setShowImportModal(false);
-      showToast('Leads imported successfully', 'success');
+      const leadsData = await result.json();
+      
+      if (!Array.isArray(leadsData)) {
+        throw new Error('Invalid response format');
+      }
 
-      // Navigate to the leads table
-      navigate('/app/leads/table');
+      const importResult = await createImport({
+        name: `${entry.productName} - Import`,
+        source: 'Lead Generation',
+        historyId: entry.id
+      });
+
+      if (!importResult) {
+        throw new Error('Failed to create import');
+      }
+
+      await importLeadsToImport(importResult.id, leadsData);
+      
+      setImportedEntries(new Set([...importedEntries, entry.id]));
+      showToast('Leads imported successfully', 'success');
+      setShowImportModal(false);
     } catch (error) {
-      console.error('Error importing leads:', error);
-      showToast('Failed to import leads: ' + (error instanceof Error ? error.message : 'Unknown error'), 'error');
+      showToast('Failed to import leads', 'error');
     } finally {
       setIsImporting(false);
     }
@@ -788,8 +619,8 @@ export default function LeadGenHistory() {
         setSelectedEntryId(null);
       }
       
-      // Reload the data to show the updated history
-      await loadData();
+      // Refresh the data
+      await refreshGenerations();
     } catch (error) {
       console.error('Error deleting generation history:', error);
       showToast('Failed to delete generation history', 'error');
@@ -799,58 +630,46 @@ export default function LeadGenHistory() {
   };
   
   // Enrich leads with additional data
-  const enrichData = async (type: 'contacts') => {
-    console.log('enrichData called with type:', type);
-    console.log('Current selectedEntry:', selectedEntry);
-    console.log('Current user:', user);
+  const enrichData = async (type: 'contacts' | 'company') => {
+    if (!selectedEntryId) return;
     
-    if (!selectedEntry) {
-      console.error('No entry selected for enrichment');
-      showToast('No entry selected for enrichment', 'error');
+    const entry = data.find(e => e.id === selectedEntryId);
+    if (!entry?.sheetId) {
+      showToast('No sheet ID found for this entry', 'error');
       return;
     }
-    
+
     if (!user?.email) {
-      console.error('No user email available');
       showToast('User email not available', 'error');
       return;
     }
-    
+
+    setIsEnriching(type);
     try {
-      setIsEnriching('contacts');
-      
-      const webhookUrl = 'https://hook.eu2.make.com/onkwar3s8ivyyz8wjve5g4x4pnp1l18j';
+      const webhookUrl = type === 'contacts' 
+        ? 'https://hook.eu2.make.com/tyxev7vqtidsni83cqouvg6elo45pk5v'
+        : 'https://hook.eu2.make.com/02x72t2um7lwt6lvspjftcrrq5kweq5h';
+
       const payload = {
-        historyId: selectedEntry.id,
+        sheetId: entry.sheetId,
         userEmail: user.email,
-        sheetId: selectedEntry.sheetId,
-        location: selectedEntry.location,
-        industries: selectedEntry.industries
+        type: type === 'contacts' ? 'enrich_contacts' : 'enrich_companies'
       };
-      
-      console.log('Sending webhook request to:', webhookUrl);
-      console.log('With payload:', payload);
 
       const response = await fetch(webhookUrl, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
 
-      console.log('Webhook response status:', response.status);
-      
       if (!response.ok) {
-        throw new Error(`Failed to start enrichment process: ${response.status} ${response.statusText}`);
+        throw new Error('Failed to start enrichment process');
       }
 
-      showToast('Decision maker search process started', 'success');
+      showToast(`${type === 'contacts' ? 'Contact' : 'Company'} enrichment started`, 'success');
       setShowEnrichModal(null);
     } catch (error) {
-      console.error('Error starting enrichment:', error);
-      showToast('Failed to start decision maker search', 'error');
+      showToast('Failed to start enrichment process', 'error');
     } finally {
       setIsEnriching(null);
     }

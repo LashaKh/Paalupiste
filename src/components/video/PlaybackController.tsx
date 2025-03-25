@@ -14,7 +14,7 @@ export function usePlaybackController({ project, onError }: UsePlaybackControlle
   const [isLoadingVideo, setIsLoadingVideo] = useState(false);
   const { showToast } = useToast();
 
-  const selectedClip = selectedClipId ? project.clips.find(clip => clip.id === selectedClipId) : null;
+  const selectedClip: VideoClip | null = selectedClipId ? project.clips.find(clip => clip.id === selectedClipId) ?? null : null;
 
   const handleClipEnd = useCallback(async () => {
     if (!selectedClip) return;
@@ -81,7 +81,7 @@ export function usePlaybackController({ project, onError }: UsePlaybackControlle
     selectedClipId,
     selectedClip,
     isLoadingVideo,
-   setSelectedClipId,
+    setSelectedClipId,
     handleClipEnd,
     selectClip,
     handleTimeUpdate,

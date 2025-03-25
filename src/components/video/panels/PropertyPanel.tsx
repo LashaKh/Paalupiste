@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { VideoProject } from '../../../types/video';
+import { VideoProject, VideoClip } from '../../../types/video';
 import BasicEditProperties from './properties/BasicEditProperties';
 import VisualEffectsProperties from './properties/VisualEffectsProperties';
 import TextProperties from './properties/TextProperties';
@@ -25,8 +25,8 @@ export default function PropertyPanel({
   const [panelError, setPanelError] = useState<string | null>(null);
 
   // Get the current selected clip if any
-  const selectedClip = selectedClipId 
-    ? project.clips.find(clip => clip.id === selectedClipId) 
+  const selectedClip: VideoClip | null = selectedClipId 
+    ? project.clips.find(clip => clip.id === selectedClipId) ?? null
     : null;
 
   // Wrap updateProject to handle errors

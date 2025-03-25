@@ -209,246 +209,154 @@ export default function Timeline({
   };
 
   return (
-    <div 
-      ref={timelineRef}
-      className="h-full flex flex-col bg-gray-900 text-white text-xs w-full"
-      onMouseDown={handleMouseDown}
-      onDragOver={(e) => {
-        e.preventDefault();
-        e.currentTarget.style.backgroundColor = 'rgba(59, 130, 246, 0.1)';
-      }}
-      onDragLeave={(e) => {
-        e.currentTarget.style.backgroundColor = '';
-      }}
-      onDrop={(e) => {
-        e.preventDefault();
-        e.currentTarget.style.backgroundColor = '';
-        try {
-          const data = JSON.parse(e.dataTransfer.getData('application/json'));
-          if (data.type === 'video') {
-            const video = document.createElement('video');
-            video.src = data.url;
-            video.onerror = () => {
-              const errorMsg = `Failed to load video. Please ensure the file format is supported (MP4, WebM).`;
-              showToast(errorMsg, 'error');
-            };
-            video.onloadedmetadata = () => {
-              // Calculate position for the new clip to avoid overlap
-              const startPosition = getNextAvailablePosition();
-              
-              const newClip = {
-                id: data.id,
-                name: data.name,
-                source: data.url,
-                duration: video.duration,
-                speed: 1,
-                volume: 1,
-                trim: {
-                  start: startPosition,
-                  end: startPosition + video.duration
-                },
-                filters: {
-                  brightness: 100,
-                  contrast: 100,
-                  saturation: 100,
-                  hue: 0,
-                  blur: 0,
-                  grayscale: false,
-                  sepia: false,
-                  invert: false
-                }
-              };
-              
-              updateProject({
-                ...project,
-                clips: [...project.clips, newClip],
-                duration: Math.max(project.duration, startPosition + video.duration)
-              });
-              
-              showToast('Video added to timeline', 'success');
-            };
-          }
-        } catch (error) {
-          console.error('Error adding video to timeline:', error);
-          showToast('Failed to add video to timeline', 'error');
-        }
-      }}
-      style={{ cursor: isDragging ? (dragType === 'move' ? 'grabbing' : 'col-resize') : 'pointer' }}
-    >
+    <div className="relative flex flex-col h-full bg-gray-800 text-white">
       {/* Timeline Controls */}
-      <div className="flex items-center justify-between p-0.5 border-b border-gray-700 text-[8px]">
-        <div className="flex items-center">
-          <button
-            onClick={handleZoomOut}
-            className="p-0.5 text-gray-400 hover:text-white rounded"
-            disabled={zoom <= 0.5}
-          >
-            <ZoomOut className="w-2 h-2" />
-          </button>
-          <div className="text-[7px] mx-0.5">
-            {Math.round(zoom * 100)}%
-          </div>
+      <div className="flex items-center justify-between px-3 py-1 bg-gray-900 border-b border-gray-700">
+        <div className="flex items-center space-x-2">
           <button
             onClick={handleZoomIn}
-            className="p-0.5 text-gray-400 hover:text-white rounded"
-            disabled={zoom >= 3}
+            className="p-1 hover:bg-gray-700 rounded"
+            title="Zoom In"
           >
-            <ZoomIn className="w-2 h-2" />
+            <ZoomIn className="w-4 h-4" />
           </button>
+          <button
+            onClick={handleZoomOut}
+            className="p-1 hover:bg-gray-700 rounded"
+            title="Zoom Out"
+          >
+            <ZoomOut className="w-4 h-4" />
+          </button>
+          <span className="text-xs text-gray-400">{Math.round(zoom * 100)}%</span>
         </div>
-        
-        <div className="text-[7px] text-gray-400">
-          {project.clips.length} clips • 
-          {project.audioTracks.length} audio •
-          {project.textOverlays.length} text
-        </div>
-        
-        <button className="p-0.5 text-gray-400 hover:text-white rounded flex items-center text-[7px]">
-          <Plus className="w-1.5 h-1.5 mr-0.5" />
-          Add Track
-        </button>
       </div>
-      
-      {/* Timeline Ruler */}
-      <div className="h-3 border-b border-gray-700 overflow-hidden">
-        <TimelineRuler 
-          duration={project.duration || 60} 
-          zoom={zoom}
-          currentTime={currentTime}
-        />
-      </div>
-      
-      {/* Timeline Tracks */}
+
+      {/* Timeline Content */}
       <div 
         ref={scrollContainerRef}
-        className="flex-1 overflow-auto"
+        className="flex-1 overflow-x-auto overflow-y-hidden"
+        onMouseDown={handleMouseDown}
       >
-        <div className="min-w-full">
-          {/* Video Track Group */}
-          <div className="border-b border-gray-700">
-            <div 
-              className="flex items-center p-0.5 hover:bg-gray-800 cursor-pointer"
+        <div 
+          ref={timelineRef}
+          className="relative"
+          style={{ width: `${Math.max(project.duration * 50 * zoom, 800)}px` }}
+        >
+          {/* Ruler */}
+          <TimelineRuler 
+            zoom={zoom} 
+            duration={project.duration} 
+            currentTime={currentTime} 
+          />
+
+          {/* Video Track */}
+          <div className="flex items-center">
+            <button
               onClick={() => toggleTrack('video')}
+              className="flex items-center w-24 px-2 py-1 text-xs hover:bg-gray-700"
             >
-              {expandedTracks.video ? (
-                <ChevronDown className="w-2 h-2 text-gray-400" />
-              ) : (
-                <ChevronRight className="w-2 h-2 text-gray-400" />
-              )}
-              <Video className="w-2 h-2 ml-0.5 mr-0.5 text-blue-400" />
-              <span className="text-[7px] font-medium">Video</span>
-            </div>
-            
-            {expandedTracks.video && (
-              <div 
-                style={{ width: `${Math.max(100, (project.duration || 60) * 50 * zoom)}px` }}
-              >
-                <TimelineTrack
-                  trackType="video"
-                  items={project.clips.map(clip => ({
-                    id: clip.id,
-                    name: clip.name,
-                    startTime: clip.trim?.start || 0,
-                    endTime: clip.trim?.end || clip.duration,
-                    color: 'rgb(59, 130, 246)', // Blue
-                    type: 'video',
-                    selected: clip.id === selectedClipId
-                  }))}
-                  zoom={zoom}
-                  onSelectItem={onSelectClip}
-                  selectedClipId={selectedClipId}
-                  onTrimStart={onTrimStart}
-                  onTrimEnd={onTrimEnd}
-                  onDeleteItem={onDeleteClip}
-                  onDragStart={handleClipDragStart}
-                  project={project}
-                  currentTime={currentTime}
-                />
-              </div>
-            )}
+              {expandedTracks.video ? <ChevronDown className="w-3 h-3 mr-1" /> : <ChevronRight className="w-3 h-3 mr-1" />}
+              <Video className="w-3 h-3 mr-1" />
+              Video
+            </button>
           </div>
-          
-          {/* Audio Track Group */}
-          <div className="border-b border-gray-700">
-            <div 
-              className="flex items-center p-0.5 hover:bg-gray-800 cursor-pointer"
+          {expandedTracks.video && (
+            <TimelineTrack
+              trackType="video"
+              items={project.clips.map(clip => ({
+                id: clip.id,
+                name: clip.name,
+                startTime: clip.trim?.start || 0,
+                endTime: clip.trim?.end || clip.duration,
+                color: '#4F46E5',
+                type: 'video',
+                selected: clip.id === selectedClipId
+              }))}
+              zoom={zoom}
+              onSelectItem={onSelectClip}
+              selectedClipId={selectedClipId}
+              currentTime={currentTime}
+              onTrimStart={onTrimStart}
+              onTrimEnd={onTrimEnd}
+              onDeleteItem={onDeleteClip}
+              project={project}
+            />
+          )}
+
+          {/* Audio Track */}
+          <div className="flex items-center mt-2">
+            <button
               onClick={() => toggleTrack('audio')}
+              className="flex items-center w-24 px-2 py-1 text-xs hover:bg-gray-700"
             >
-              {expandedTracks.audio ? (
-                <ChevronDown className="w-2 h-2 text-gray-400" />
-              ) : (
-                <ChevronRight className="w-2 h-2 text-gray-400" />
-              )}
-              <Music className="w-2 h-2 ml-0.5 mr-0.5 text-green-400" />
-              <span className="text-[7px] font-medium">Audio</span>
-            </div>
-            
-            {expandedTracks.audio && (
-              <div 
-                style={{ width: `${Math.max(100, (project.duration || 60) * 50 * zoom)}px` }}
-              >
-                <TimelineTrack
-                  trackType="audio"
-                  items={project.audioTracks.map(track => ({
-                    id: track.id,
-                    name: track.name,
-                    startTime: track.startTime,
-                    endTime: track.endTime,
-                    color: track.type === 'music' ? 'rgb(16, 185, 129)' : 'rgb(239, 68, 68)', // Green/Red
-                    type: track.type,
-                    selected: false
-                  }))}
-                  zoom={zoom}
-                  onSelectItem={() => {}}
-                  currentTime={currentTime}
-                  project={project}
-                  onTrimStart={() => {}}
-                  onTrimEnd={() => {}}
-                />
-              </div>
-            )}
+              {expandedTracks.audio ? <ChevronDown className="w-3 h-3 mr-1" /> : <ChevronRight className="w-3 h-3 mr-1" />}
+              <Music className="w-3 h-3 mr-1" />
+              Audio
+            </button>
           </div>
-          
-          {/* Text Track Group */}
-          <div className="border-b border-gray-700">
-            <div 
-              className="flex items-center p-0.5 hover:bg-gray-800 cursor-pointer"
+          {expandedTracks.audio && (
+            <TimelineTrack
+              trackType="audio"
+              items={project.audioTracks.map(track => ({
+                id: track.id,
+                name: track.name,
+                startTime: track.startTime,
+                endTime: track.endTime,
+                color: track.type === 'music' ? '#10B981' : '#F59E0B',
+                type: track.type,
+                selected: false
+              }))}
+              zoom={zoom}
+              onSelectItem={() => {}}
+              selectedClipId={null}
+              currentTime={currentTime}
+              onTrimStart={onTrimStart}
+              onTrimEnd={onTrimEnd}
+              project={project}
+            />
+          )}
+
+          {/* Text Track */}
+          <div className="flex items-center mt-2">
+            <button
               onClick={() => toggleTrack('text')}
+              className="flex items-center w-24 px-2 py-1 text-xs hover:bg-gray-700"
             >
-              {expandedTracks.text ? (
-                <ChevronDown className="w-2 h-2 text-gray-400" />
-              ) : (
-                <ChevronRight className="w-2 h-2 text-gray-400" />
-              )}
-              <Type className="w-2 h-2 ml-0.5 mr-0.5 text-yellow-400" />
-              <span className="text-[7px] font-medium">Text</span>
-            </div>
-            
-            {expandedTracks.text && (
-              <div 
-                style={{ width: `${Math.max(100, (project.duration || 60) * 50 * zoom)}px` }}
-              >
-                <TimelineTrack
-                  trackType="text"
-                  items={project.textOverlays.map(overlay => ({
-                    id: overlay.id,
-                    name: overlay.text,
-                    startTime: overlay.startTime,
-                    endTime: overlay.endTime,
-                    color: 'rgb(234, 179, 8)', // Yellow
-                    type: 'text',
-                    selected: false
-                  }))}
-                  zoom={zoom}
-                  onSelectItem={() => {}}
-                  currentTime={currentTime}
-                  project={project}
-                  onTrimStart={() => {}}
-                  onTrimEnd={() => {}}
-                />
-              </div>
-            )}
+              {expandedTracks.text ? <ChevronDown className="w-3 h-3 mr-1" /> : <ChevronRight className="w-3 h-3 mr-1" />}
+              <Type className="w-3 h-3 mr-1" />
+              Text
+            </button>
           </div>
+          {expandedTracks.text && (
+            <TimelineTrack
+              trackType="text"
+              items={project.textOverlays.map(overlay => ({
+                id: overlay.id,
+                name: overlay.text,
+                startTime: overlay.startTime,
+                endTime: overlay.endTime,
+                color: '#EC4899',
+                type: 'text',
+                selected: false
+              }))}
+              zoom={zoom}
+              onSelectItem={() => {}}
+              selectedClipId={null}
+              currentTime={currentTime}
+              onTrimStart={onTrimStart}
+              onTrimEnd={onTrimEnd}
+              project={project}
+            />
+          )}
+
+          {/* Current Time Indicator */}
+          <div 
+            className="absolute top-0 bottom-0 w-0.5 bg-white"
+            style={{ 
+              left: `${currentTime * 50 * zoom}px`,
+              zIndex: 10
+            }}
+          />
         </div>
       </div>
     </div>

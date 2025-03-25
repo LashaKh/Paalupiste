@@ -152,9 +152,7 @@ export default function Dashboard() {
             <div className="text-3xl font-bold text-primary mb-2">{newsletters.length}</div>
             <div className="text-gray-600">Newsletters</div>
             <div className="mt-2 text-xs text-gray-500">
-              {newsletters.filter(n => n.status === 'Draft').length} Drafts •{' '}
-              {newsletters.filter(n => n.status === 'Ready').length} Ready •{' '}
-              {newsletters.filter(n => n.status === 'Sent').length} Sent
+              Total Generated
             </div>
           </div>
         </div>

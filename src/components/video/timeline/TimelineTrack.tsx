@@ -129,7 +129,7 @@ export default function TimelineTrack({
 
     // Set cursor style
     document.body.style.cursor = 'grabbing';
-    e.currentTarget.style.cursor = 'grabbing';
+    (e.currentTarget as HTMLElement).style.cursor = 'grabbing';
   };
 
   const handleTrimDragStart = (e: React.MouseEvent, item: TimelineItem, type: 'trim-start' | 'trim-end') => {

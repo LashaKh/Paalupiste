@@ -13,12 +13,9 @@ export function LeadTableBody({ table, loading, onRefresh }: LeadTableBodyProps)
   const [localLoading, setLocalLoading] = useState(loading);
   const [loadingTimeout, setLoadingTimeout] = useState(false);
   
-  // Handle loading state with timeout to prevent infinite loading
   useEffect(() => {
     setLocalLoading(loading);
     
-    // If loading is true, set a timeout to force it to false after 10 seconds
-    // This prevents infinite loading states
     if (loading) {
       const timer = setTimeout(() => {
         setLoadingTimeout(true);
@@ -30,34 +27,6 @@ export function LeadTableBody({ table, loading, onRefresh }: LeadTableBodyProps)
       setLoadingTimeout(false);
     }
   }, [loading]);
-
-  // Debug logging
-  console.log('LeadTableBody render:', {
-    loading,
-    localLoading,
-    loadingTimeout,
-    dataLength: table.options.data.length,
-    rowsLength: table.getRowModel().rows.length,
-    data: table.options.data,
-    rows: table.getRowModel().rows
-  });
-  
-  // Log table data for debugging
-  console.log('LeadTableBody data length:', table.options.data.length);
-  
-  // Check if any rows have company_description
-  const hasCompanyDescriptions = Array.isArray(table.options.data) &&
-    table.options.data.some((row) => 
-      (row as any).company_description
-    );
-  console.log('Has company descriptions:', hasCompanyDescriptions);
-  
-  if (table.options.data.length > 0) {
-    const firstRow = table.options.data[0] as any;
-    console.log('DEBUG - Full sample row data:', JSON.stringify(firstRow, null, 2));
-    console.log('Sample row data keys:', Object.keys(firstRow));
-    console.log('Sample company_description value:', firstRow.company_description);
-  }
   
   if (localLoading) {
     return (
@@ -87,7 +56,6 @@ export function LeadTableBody({ table, loading, onRefresh }: LeadTableBodyProps)
     );
   }
 
-  // Check if there's no data or rows
   if (table.getRowModel().rows.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-64 bg-gray-50/50">
