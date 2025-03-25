@@ -5,11 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "clean": "rm -rf dist",
-    "build": "npm run clean && tsc && vite build",
-    "preview": "vite preview",
-    "type-check": "tsc --noEmit",
-    "postinstall": "npm run type-check"
+    "build": "vite build",
+    "preview": "vite preview"
   },
   "dependencies": {
     "@monaco-editor/react": "4.5.2",

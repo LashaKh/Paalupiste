@@ -12,15 +12,11 @@ export default defineConfig({
   build: {
     target: 'es2015',
     outDir: 'dist',
-    cssCodeSplit: true,
-    sourcemap: false,
+    cssCodeSplit: false,
     rollupOptions: {
       output: {
-        manualChunks: (id) => {
-          if (id.includes('node_modules')) {
-            return 'vendor';
-          }
-        }
+        manualChunks: undefined,
+        inlineDynamicImports: true
       }
     }
   },
