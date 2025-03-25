@@ -691,15 +691,26 @@ export default function LeadGenHistory() {
 
     setIsEnriching(type);
     try {
-      // Get the webhook response
-      const response = await fetch(`https://hook.eu2.make.com/tyxev7vqtidsni83cqouvg6elo45pk5v?sheetId=${selectedEntry.sheetId}`);
-      const result = await response.text();
+      // Get the webhook response for enrichment
+      const response = await fetch(`https://hook.eu2.make.com/tyxev7vqtidsni83cqouvg6elo45pk5v`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          sheetId: selectedEntry.sheetId,
+          type: 'enrich_contacts'
+        })
+      });
       
-      console.log('Enrichment webhook response:', result);
+      console.log('Enrichment webhook response:', response);
       
       if (!response.ok) {
         throw new Error('Failed to start enrichment process');
       }
+
+      const result = await response.text();
+      console.log('Enrichment result:', result);
 
       showToast(`${type === 'contacts' ? 'Contact' : 'Company'} enrichment started`, 'success');
       setShowEnrichModal(null);
