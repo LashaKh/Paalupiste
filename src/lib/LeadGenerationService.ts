@@ -34,7 +34,7 @@ export class LeadGenerationService {
       onComplete?: (sheetId: string, sheetLink: string) => void;
       onError?: (error: Error) => void;
     }
-  ): Promise<{ success: boolean; sheetId?: string; sheetLink?: string; error?: string }> {
+  ): Promise<GenerationResponse> {
     try {
       const response = await fetch(LeadGenerationService.WEBHOOK_URL, {
         method: 'POST',
@@ -56,7 +56,8 @@ export class LeadGenerationService {
         return {
           success: true,
           sheetId: data.SheetID,
-          sheetLink: data.SheetLink
+          sheetLink: data.SheetLink,
+          leadsCount: 0 // Initialize with 0, will be updated when leads are processed
         };
       }
 
