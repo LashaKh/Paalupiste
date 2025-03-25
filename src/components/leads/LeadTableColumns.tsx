@@ -1,5 +1,5 @@
-import { createColumnHelper, ColumnDef } from '@tanstack/react-table';
-import { ArrowUpDown, Edit, Eye, Trash2, UserCheck, FileText } from 'lucide-react';
+import { createColumnHelper, ColumnDef, Table, Row } from '@tanstack/react-table';
+import { ArrowUpDown, Edit, Eye, Trash2, UserCheck, FileText, Building, Globe, FileText as Description, User } from 'lucide-react';
 import { Lead } from '../../types/leads';
 import { useState } from 'react';
 import { LeadNotesModal } from './LeadNotesModal';
@@ -31,10 +31,21 @@ export function getColumns({
   handleDelete,
   handleConvert,
 }: GetColumnsProps): ColumnDef<Lead, any>[] {
-  return [
+  // Debug logging
+  console.log('getColumns called with:', {
+    editingCell,
+    hasSetEditingCell: !!setEditingCell,
+    hasHandleSaveEdit: !!handleSaveEdit,
+    hasHandleEditClick: !!handleEditClick,
+    hasHandleView: !!handleView,
+    hasHandleDelete: !!handleDelete,
+    hasHandleConvert: !!handleConvert
+  });
+
+  const columns = [
     {
       id: 'select',
-      header: ({ table }) => (
+      header: ({ table }: { table: Table<Lead> }) => (
         <div className="px-1">
           <input
             type="checkbox"
@@ -44,7 +55,7 @@ export function getColumns({
           />
         </div>
       ),
-      cell: ({ row }) => (
+      cell: ({ row }: { row: Row<Lead> }) => (
         <div className="px-1">
           <input
             type="checkbox"
@@ -61,6 +72,7 @@ export function getColumns({
     columnHelper.accessor('companyName', {
       header: ({ column }) => (
         <div className="flex items-center gap-2">
+          <Building className="w-4 h-4" />
           Company Name
           {column.getCanSort() && (
             <ArrowUpDown className="w-4 h-4 cursor-pointer" />
@@ -100,9 +112,25 @@ export function getColumns({
       enableSorting: true,
     }),
     columnHelper.accessor('website', {
-      header: 'Website',
-      cell: (info) => (
-        editingCell?.id === info.row.original.id && editingCell?.field === 'website' ? (
+      header: ({ column }) => (
+        <div className="flex items-center gap-2">
+          <Globe className="w-4 h-4" />
+          Website
+        </div>
+      ),
+      cell: (info) => {
+        const websiteValue = info.getValue();
+        console.log('Website cell value:', websiteValue, typeof websiteValue);
+        
+        // Helper function to format website URL
+        const formatWebsiteUrl = (url: string) => {
+          if (!url || typeof url !== 'string' || url.trim() === '') {
+            return null;
+          }
+          return url.startsWith('http') ? url : `https://${url}`;
+        };
+        
+        return editingCell?.id === info.row.original.id && editingCell?.field === 'website' ? (
           <input
             type="url"
             value={editingCell.value}
@@ -120,28 +148,83 @@ export function getColumns({
           />
         ) : (
           <a
-            href={info.getValue()}
+            href={formatWebsiteUrl(websiteValue as string) || '#'}
             target="_blank"
             rel="noopener noreferrer"
             className="text-primary hover:underline"
             onClick={(e) => {
-              if (!info.getValue()) {
+              if (!formatWebsiteUrl(websiteValue as string)) {
                 e.preventDefault();
                 setEditingCell({
                   id: info.row.original.id,
                   field: 'website',
-                  value: info.getValue() || ''
+                  value: websiteValue || ''
                 });
               }
             }}
           >
-            {info.getValue() || '-'}
+            {websiteValue && typeof websiteValue === 'string' && websiteValue.trim() !== '' ? websiteValue : '-'}
           </a>
-        )
+        );
+      },
+    }),
+    columnHelper.accessor('company_description', {
+      header: ({ column }) => (
+        <div className="flex items-center gap-2">
+          <Description className="w-4 h-4" />
+          Company Description
+        </div>
       ),
+      cell: (info) => {
+        // Get description directly from company_description field only
+        const description = info.getValue();
+        console.log('DEBUG - Description cell access path:', 'company_description');
+        console.log('DEBUG - Description getValue():', description);
+        console.log('DEBUG - Description from row.original:', info.row.original.company_description);
+        console.log('DEBUG - Row original keys:', Object.keys(info.row.original));
+        
+        return editingCell?.id === info.row.original.id && editingCell?.field === 'company_description' ? (
+          <textarea
+            value={editingCell.value}
+            onChange={(e) => setEditingCell({ ...editingCell, value: e.target.value })}
+            onBlur={() => handleSaveEdit(info.row.original.id, 'company_description', editingCell.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && e.ctrlKey) {
+                handleSaveEdit(info.row.original.id, 'company_description', editingCell.value);
+              } else if (e.key === 'Escape') {
+                setEditingCell(null);
+              }
+            }}
+            className="w-full px-2 py-1 border border-primary rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+            autoFocus
+            rows={3}
+          />
+        ) : (
+          <div
+            className="cursor-pointer hover:text-primary max-w-xs truncate"
+            title={description ? String(description) : ''}
+            onClick={() => setEditingCell({
+              id: info.row.original.id,
+              field: 'company_description',
+              value: description ? String(description) : ''
+            })}
+          >
+            {description && typeof description === 'string' && description.trim() !== '' 
+              ? description.length > 50 
+                ? description.substring(0, 50) + '...' 
+                : description 
+              : '-'}
+          </div>
+        );
+      },
     }),
     columnHelper.accessor('decisionMakerName', {
-      header: 'Decision Maker',
+      header: ({ column }) => (
+        <div className="flex items-center gap-2">
+          <User className="w-4 h-4" />
+          Decision Maker
+        </div>
+      ),
       cell: (info) => (
         editingCell?.id === info.row.original.id && editingCell?.field === 'decisionMakerName' ? (
           <input
@@ -461,4 +544,7 @@ export function getColumns({
       ),
     }),
   ];
+
+  console.log('getColumns returning columns:', columns);
+  return columns;
 }

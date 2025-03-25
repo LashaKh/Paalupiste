@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Building2, MapPin, Users, Sparkles, Loader2, Check } from 'lucide-react';
+import { Building2, MapPin, Users, Sparkles, Loader2, Check, ArrowRight, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { FormInput } from './FormInput';
 import { useAuth } from '../../contexts/AuthContext';
@@ -9,28 +9,35 @@ import { LeadGenerationService } from '../../lib/LeadGenerationService';
 import { SuccessModal } from '../ui/SuccessModal';
 import { FormData, GenerationHistory } from '../../types';
 import { v4 as uuidv4 } from 'uuid';
+import { motion, AnimatePresence } from 'framer-motion';
+
+// Webhook URL for lead generation
+const LEAD_GENERATION_WEBHOOK_URL = 'https://hook.eu2.make.com/8xqjvc4pyrhei7f1nc3w6364sqahzkj5';
 
 const INDUSTRIES = [
-  'Construction & Civil Engineering',
-  'Infrastructure & Public Works',
-  'Renewable Energy Projects',
-  'Marine & Coastal Construction',
-  'Industrial & Manufacturing Facilities',
-  'Oil, Gas & Mining',
-  'Transportation & Logistics',
-  'Specialty Contractors & Engineering Services',
-  'Real Estate Development',
-  'Government & Municipal Projects',
-  'Educational & Healthcare Facilities',
-  'Sports, Entertainment & Hospitality',
-  'Agricultural & Rural Infrastructure',
-  'Environmental Remediation & Site Restoration',
-  'Urban Development & Smart Cities',
-  'Water, Sewer & Waste Management',
-  'Technology Infrastructure & Data Centers',
-  'Disaster Recovery & Resilience Projects',
-  'Utility Infrastructure',
-  'Offshore & Marine Energy Installations'
+  'Fence, wall and noise barrier builders and installer',
+  'Installation partners',
+  'Housing companies',
+  'Energy companies',
+  'Maintenance and repair companies',
+  'Engineering and design offices',
+  'Transport and lifting service companies',
+  'Municipalities, cities and other public entities',
+  'Pier/deck manufacturers and installers',
+  'Glazing installers and manufacturers',
+  'Flagpole manufacturers and installers',
+  'Civil engineering and infrastructure contractors',
+  'Soil survey companies',
+  'Construction companies',
+  'Renovation and painting companies',
+  'Electrical and telecommunications infrastructure contractors (or Network infrastructure contractors)',
+  'Electricity network companies',
+  'House factories and manufacturers of building materials',
+  'Renewable energy producers and other operators',
+  'Solar energy companies',
+  'Wind power companies',
+  'Battery storage technology companies',
+  'Garden and yard builders'
 ];
 
 const COMPANY_SIZES = [
@@ -245,23 +252,64 @@ const initialFormData: FormData = {
   additionalIndustries: ''
 };
 
+const steps = [
+  { id: 'location', title: 'Location', icon: MapPin },
+  { id: 'industries', title: 'Industries', icon: Building2 },
+  { id: 'company-size', title: 'Company Size', icon: Users },
+];
+
 export default function ProductForm() {
-  const [isLoading, setIsLoading] = useState(false);
+  const [currentStep, setCurrentStep] = useState(0);
   const [formData, setFormData] = useState<FormData>(initialFormData);
-  const [generationStatus, setGenerationStatus] = useState<string>('');
-  const [successSheetLink, setSuccessSheetLink] = useState<string | null>(null);
-  const [selectedIndustries, setSelectedIndustries] = useState<string[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [generatedId, setGeneratedId] = useState('');
+  
   const { user } = useAuth();
-  const navigate = useNavigate();
   const { showToast } = useToast();
   const { addGeneration } = useGenerationHistory();
-  const leadGenService = useMemo(() => new LeadGenerationService(), []);
+  const navigate = useNavigate();
 
-  const handleIndustryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const selected: string[] = Array.from(e.target.selectedOptions).map(option => option.value);
+  const isStepComplete = (step: number) => {
+    switch (step) {
+      case 0:
+        return formData.location.country !== '';
+      case 1:
+        return formData.industries.length > 0;
+      case 2:
+        return formData.companySize !== '';
+      default:
+        return false;
+    }
+  };
+
+  const canProceed = isStepComplete(currentStep);
+
+  const handleNext = () => {
+    if (currentStep < steps.length - 1 && canProceed) {
+      setCurrentStep(prev => prev + 1);
+    }
+  };
+
+  const handleBack = () => {
+    if (currentStep > 0) {
+      setCurrentStep(prev => prev - 1);
+    }
+  };
+
+  const handleIndustryChange = (industry: string) => {
     setFormData(prev => ({
       ...prev,
-      industries: selected
+      industries: prev.industries.includes(industry)
+        ? prev.industries.filter(i => i !== industry)
+        : [...prev.industries, industry]
+    }));
+  };
+
+  const handleAdditionalIndustriesChange = (value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      additionalIndustries: value
     }));
   };
 
@@ -270,252 +318,328 @@ export default function ProductForm() {
       ...prev,
       location: {
         ...prev.location,
-        [field]: value
+        [field]: field === 'country' ? COUNTRIES.find(c => c.value === value)?.label || value : value
       }
     }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
     if (!user) {
       showToast('Please sign in to generate leads', 'error');
-      navigate('/login');
       return;
     }
 
     setIsLoading(true);
-    setGenerationStatus('');
+    const generationId = uuidv4();
 
     try {
+      const leadGenService = new LeadGenerationService();
       const response = await leadGenService.generateLeads(formData, {
         onStatusChange: (status, message) => {
-          setGenerationStatus(message);
+          console.log(`Generation status: ${status} - ${message}`);
         },
         onComplete: (sheetId, sheetLink) => {
-          setSuccessSheetLink(sheetLink);
-          addGeneration({
-            productName: "Lead Generation",
-            productDescription: `Generated leads for ${formData.industries.join(", ")} in ${formData.location.country}${formData.location.state ? `, ${formData.location.state}` : ''}`,
-            location: {
-              country: formData.location.country,
-              state: formData.location.state
-            },
-            industries: formData.industries,
-            companySize: formData.companySize,
-            additionalIndustries: formData.additionalIndustries,
-            timestamp: new Date().toISOString(),
-            status: 'success'
-          });
-          setGenerationStatus('success');
+          console.log('Generation complete:', { sheetId, sheetLink });
         },
         onError: (error) => {
+          console.error('Generation error:', error);
           showToast(error.message, 'error');
-          addGeneration({
-            productName: "Lead Generation",
-            productDescription: `Failed lead generation for ${formData.industries.join(", ")} in ${formData.location.country}${formData.location.state ? `, ${formData.location.state}` : ''}`,
-            location: {
-              country: formData.location.country,
-              state: formData.location.state
-            },
-            industries: formData.industries,
-            companySize: formData.companySize,
-            additionalIndustries: formData.additionalIndustries,
-            status: 'error',
-            errorMessage: error.message,
-            timestamp: new Date().toISOString()
-          });
-          setGenerationStatus('error');
         }
       });
 
-      if (!response.success && response.error) {
-        throw new Error(response.error);
+      if (response.success) {
+        const historyEntry: GenerationHistory = {
+          id: generationId,
+          timestamp: new Date().toISOString(),
+          status: 'completed',
+          location: formData.location,
+          industries: formData.industries,
+          companySize: formData.companySize,
+          additionalIndustries: formData.additionalIndustries,
+          formData,
+          productName: "Lead Generation",
+          productDescription: `Generated leads for ${formData.industries.join(", ")} in ${formData.location.country}${formData.location.state ? `, ${formData.location.state}` : ''}`,
+          sheetId: response.sheetId,
+          sheetLink: response.sheetLink
+        };
+
+        addGeneration(historyEntry);
+        setGeneratedId(generationId);
+        setShowSuccessModal(true);
+      } else {
+        showToast('Failed to generate leads. Please try again.', 'error');
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to generate leads';
-      showToast(errorMessage, 'error');
-      setGenerationStatus('error');
+      console.error('Lead generation error:', error);
+      showToast('An error occurred while generating leads', 'error');
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleCloseSuccessModal = () => {
-    setSuccessSheetLink(null);
-    navigate('/app/history');
+    setShowSuccessModal(false);
+    navigate(`/leads/${generatedId}`);
+  };
+
+  const renderStepContent = (step: number) => {
+    return (
+      <motion.div
+        key={step}
+        initial={{ opacity: 0, x: 20 }}
+        animate={{ opacity: 1, x: 0 }}
+        exit={{ opacity: 0, x: -20 }}
+        transition={{ duration: 0.3 }}
+      >
+        {step === 0 && (
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="form-group">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Country
+                </label>
+                <select
+                  className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
+                  value={COUNTRIES.find(c => c.label === formData.location.country)?.value || ''}
+                  onChange={(e) => handleLocationChange('country')(e.target.value)}
+                >
+                  <option value="">Select a country</option>
+                  {COUNTRIES.map(country => (
+                    <option key={country.value} value={country.value}>
+                      {country.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  City/State
+                </label>
+                <input
+                  type="text"
+                  value={formData.location.state}
+                  onChange={(e) => handleLocationChange('state')(e.target.value)}
+                  placeholder="Enter city or state"
+                  className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
+                />
+              </div>
+            </div>
+
+            {formData.location.country && formData.location.state && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mt-4 p-3 bg-primary/5 rounded-lg border border-primary/10"
+              >
+                <p className="text-sm text-gray-600">
+                  Selected Location: <span className="font-medium text-gray-900">{formData.location.country}</span>
+                  {formData.location.state && (
+                    <>, <span className="font-medium text-gray-900">{formData.location.state}</span></>
+                  )}
+                </p>
+              </motion.div>
+            )}
+          </div>
+        )}
+
+        {step === 1 && (
+          <div className="space-y-6">
+            <div className="form-group">
+              <label className="block text-sm font-medium text-gray-700 mb-4">
+                Target Industries
+              </label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[400px] overflow-y-auto p-1">
+                {INDUSTRIES.map(industry => (
+                  <div
+                    key={industry}
+                    onClick={() => handleIndustryChange(industry)}
+                    className="flex items-start space-x-3 p-3 hover:bg-gray-50 rounded-lg transition-colors cursor-pointer group"
+                  >
+                    <div className="flex items-center h-5 mt-0.5">
+                      <input
+                        type="checkbox"
+                        checked={formData.industries.includes(industry)}
+                        onChange={() => {}}
+                        className="h-4 w-4 text-primary border-gray-300 rounded focus:ring-primary/20 cursor-pointer"
+                      />
+                    </div>
+                    <label className="text-sm text-gray-700 cursor-pointer select-none flex-1 group-hover:text-gray-900">
+                      {industry}
+                    </label>
+                  </div>
+                ))}
+              </div>
+              
+              {formData.industries.length > 0 && (
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {formData.industries.map(industry => (
+                    <span
+                      key={industry}
+                      className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary group"
+                    >
+                      {industry}
+                      <button
+                        type="button"
+                        onClick={() => handleIndustryChange(industry)}
+                        className="ml-1 hover:text-primary-hover focus:outline-none"
+                        aria-label={`Remove ${industry}`}
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              <div className="mt-6 space-y-4">
+                <label className="block text-sm font-medium text-gray-700">
+                  Additional Industries (Optional)
+                </label>
+                <textarea
+                  value={formData.additionalIndustries || ''}
+                  onChange={(e) => handleAdditionalIndustriesChange(e.target.value)}
+                  placeholder="Enter any additional industries not listed above..."
+                  className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors min-h-[100px] resize-none"
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {step === 2 && (
+          <div className="space-y-6">
+            <div className="form-group">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Company Size
+              </label>
+              <div className="grid grid-cols-1 gap-4">
+                {COMPANY_SIZES.map(size => (
+                  <button
+                    key={size.value}
+                    type="button"
+                    className={`flex items-center justify-between p-4 rounded-lg border ${
+                      formData.companySize === size.value
+                        ? 'border-primary bg-primary/5 text-primary'
+                        : 'border-gray-200 hover:border-primary/30 hover:bg-gray-50'
+                    } transition-colors`}
+                    onClick={() => setFormData(prev => ({ ...prev, companySize: size.value }))}
+                  >
+                    <span className="font-medium">{size.label}</span>
+                    {formData.companySize === size.value && (
+                      <Check className="h-5 w-5" />
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+      </motion.div>
+    );
   };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-8">
-      <div className="space-y-6">
-        {/* Target Industries */}
-        <div className="relative">
-          <div className="absolute -left-12 top-2">
-            <Building2 className="h-6 w-6 text-primary" />
-          </div>
-          <label className="block text-sm font-medium text-gray-900 mb-2">
-            Target Industries
-            <span className="text-xs text-gray-500 ml-2">(Select multiple)</span>
-          </label>
-          <div className="relative">
-            <div className="grid grid-cols-2 gap-4 max-h-60 overflow-y-auto p-4 bg-white border border-gray-200 rounded-lg shadow-sm">
-              {INDUSTRIES.map(industry => (
+      {/* Progress Steps */}
+      <div className="mb-8">
+        <div className="flex items-center justify-between mb-4">
+          {steps.map((step, index) => (
+            <React.Fragment key={step.id}>
+              <div className="flex items-center">
                 <div
-                  key={industry}
-                  className="flex items-center space-x-3 p-2 hover:bg-gray-50 rounded-lg cursor-pointer"
-                  onClick={() => {
-                    const isSelected = selectedIndustries.includes(industry);
-                    const newSelected = isSelected
-                      ? selectedIndustries.filter(i => i !== industry)
-                      : [...selectedIndustries, industry];
-                    setSelectedIndustries(newSelected);
-                    setFormData(prev => ({ ...prev, industries: newSelected }));
-                  }}
+                  className={`flex items-center justify-center w-10 h-10 rounded-full ${
+                    index <= currentStep
+                      ? 'bg-primary text-white'
+                      : 'bg-gray-100 text-gray-400'
+                  } ${isStepComplete(index) ? 'ring-2 ring-primary/20' : ''}`}
                 >
-                  <div className={`w-5 h-5 rounded border flex items-center justify-center transition-colors ${
-                    selectedIndustries.includes(industry)
-                      ? 'bg-primary border-primary'
-                      : 'border-gray-300'
-                  }`}>
-                    {selectedIndustries.includes(industry) && (
-                      <Check className="w-3 h-3 text-white" />
-                    )}
-                  </div>
-                  <span className="text-sm text-gray-700">{industry}</span>
+                  <step.icon className="h-5 w-5" />
                 </div>
-              ))}
-            </div>
-            {selectedIndustries.length === 0 && (
-              <p className="mt-2 text-sm text-red-600">Please select at least one industry</p>
-            )}
-          </div>
-        </div>
-
-        {/* Additional Industries */}
-        <div className="relative">
-          <div className="absolute -left-12 top-2">
-            <Building2 className="h-6 w-6 text-primary" />
-          </div>
-          <FormInput
-            id="additionalIndustries"
-            label="Additional Industries (Optional)"
-            value={formData.additionalIndustries || ''}
-            onChange={(value) => setFormData(prev => ({ ...prev, additionalIndustries: value }))}
-            placeholder="Enter any additional industries not listed above"
-          />
-        </div>
-
-        {/* Location Selection */}
-        <div className="relative">
-          <div className="absolute -left-12 top-2">
-            <MapPin className="h-6 w-6 text-primary" />
-          </div>
-          <div className="grid grid-cols-2 gap-4 relative">
-            <div>
-              <label htmlFor="country" className="block text-sm font-medium text-gray-900 mb-2">
-                Country
-              </label>
-              <input
-                type="text"
-                id="country"
-                list="countries"
-                className="block w-full px-4 py-3 rounded-lg border border-gray-300 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-200 hover:border-primary/50"
-                value={formData.location.country}
-                onChange={(e) => handleLocationChange('country')(e.target.value)}
-                placeholder="Select or type country"
-                required
-              />
-              <datalist id="countries">
-                {COUNTRIES.map(country => (
-                  <option key={country.value} value={country.label} />
-                ))}
-              </datalist>
-            </div>
-            <div>
-              <label htmlFor="cityState" className="block text-sm font-medium text-gray-900 mb-2">
-                City/State
-              </label>
-              <input
-                type="text"
-                id="cityState"
-                className="block w-full px-4 py-3 rounded-lg border border-gray-300 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-200 hover:border-primary/50"
-                value={formData.location.state}
-                onChange={(e) => handleLocationChange('state')(e.target.value)}
-                placeholder="Enter city or state"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Company Size */}
-        <div className="relative">
-          <div className="absolute -left-12 top-2">
-            <Users className="h-6 w-6 text-primary" />
-          </div>
-          <div className="relative">
-            <label htmlFor="companySize" className="block text-sm font-medium text-gray-900 mb-2">
-              Company Size (Optional)
-            </label>
-            <select
-              id="companySize"
-              className="block w-full px-4 py-3 rounded-lg border border-gray-300 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-200 hover:border-primary/50"
-              value={formData.companySize}
-              onChange={(e) => setFormData(prev => ({ ...prev, companySize: e.target.value }))}
-            >
-              <option value="">Select Company Size</option>
-              {COMPANY_SIZES.map(size => (
-                <option key={size.value} value={size.value}>
-                  {size.label}
-                </option>
-              ))}
-            </select>
-          </div>
+                <span className="ml-3 text-sm font-medium text-gray-900">
+                  {step.title}
+                </span>
+              </div>
+              {index < steps.length - 1 && (
+                <div className="flex-1 mx-4 h-0.5 bg-gray-200">
+                  <div
+                    className="h-full bg-primary transition-all duration-300"
+                    style={{
+                      width: `${index < currentStep ? '100%' : '0%'}`
+                    }}
+                  />
+                </div>
+              )}
+            </React.Fragment>
+          ))}
         </div>
       </div>
 
-      <div className="pt-6 border-t border-gray-200">
+      {/* Form Content */}
+      <AnimatePresence mode="wait">
+        {renderStepContent(currentStep)}
+      </AnimatePresence>
+
+      {/* Navigation Buttons */}
+      <div className="flex items-center justify-between pt-6 border-t border-gray-200">
         <button
-          type="submit"
-          disabled={isLoading || !user || !formData.location.country.trim() || selectedIndustries.length === 0}
-          className={`w-full flex justify-center items-center py-4 px-6 border border-transparent rounded-xl text-base font-medium text-white transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary shadow-lg ${
-            isLoading || !user || !formData.location.country.trim() || selectedIndustries.length === 0
-              ? 'bg-gray-400 cursor-not-allowed'
-              : 'bg-gradient-to-r from-primary to-secondary hover:from-primary-hover hover:to-secondary-hover transform hover:scale-[1.02]'
+          type="button"
+          onClick={handleBack}
+          className={`flex items-center px-6 py-2.5 text-sm font-medium rounded-lg ${
+            currentStep === 0
+              ? 'text-gray-300 cursor-not-allowed'
+              : 'text-gray-600 hover:text-gray-900'
           }`}
+          disabled={currentStep === 0}
         >
-          {isLoading ? (
-            <>
-              <Loader2 className="animate-spin -ml-1 mr-2 h-5 w-5" />
-              {generationStatus === 'success' ? 'Leads Generated Successfully' : generationStatus === 'error' ? 'Failed to Generate Leads' : 'Generating Leads...'}
-            </>
-          ) : (
-            <>
-              <Sparkles className="h-5 w-5 mr-2" />
-              Generate Targeted Leads
-            </>
-          )}
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Back
         </button>
-        {selectedIndustries.length > 0 && (
-          <div className="mt-4 flex flex-wrap gap-2">
-            {selectedIndustries.map(industry => (
-              <span
-                key={industry}
-                className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary"
-              >
-                {industry}
-              </span>
-            ))}
-          </div>
+
+        {currentStep === steps.length - 1 ? (
+          <button
+            type="submit"
+            disabled={isLoading || !canProceed}
+            className={`flex items-center px-6 py-2.5 rounded-lg text-sm font-medium ${
+              canProceed && !isLoading
+                ? 'bg-primary text-white hover:bg-primary/90'
+                : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+            }`}
+          >
+            {isLoading ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Generating...
+              </>
+            ) : (
+              <>
+                <Sparkles className="h-4 w-4 mr-2" />
+                Generate Leads
+              </>
+            )}
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={handleNext}
+            disabled={!canProceed}
+            className={`flex items-center px-6 py-2.5 rounded-lg text-sm font-medium ${
+              canProceed
+                ? 'bg-primary text-white hover:bg-primary/90'
+                : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+            }`}
+          >
+            Next
+            <ArrowRight className="h-4 w-4 ml-2" />
+          </button>
         )}
       </div>
 
-      {successSheetLink && (
-        <SuccessModal
-          sheetLink={successSheetLink}
-          onClose={handleCloseSuccessModal}
-        />
-      )}
+      <SuccessModal
+        isOpen={showSuccessModal}
+        onClose={handleCloseSuccessModal}
+      />
     </form>
   );
 }

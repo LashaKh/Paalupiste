@@ -64,11 +64,11 @@ export default function Layout() {
       
       <div 
         className={`flex-1 flex flex-col transition-all duration-300 ease-in-out ${
-          isLeadRelated && !isContentFlow && sidebarOpen ? `ml-[16rem]` : 'ml-0'
+          isLeadRelated && !isContentFlow && sidebarOpen ? `ml-[16rem] w-[calc(100%-16rem)]` : 'ml-0 w-full'
         }`}
       >
         <nav className="border-b border-gray-200 bg-white">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="max-w-full px-4 sm:px-6 lg:px-8">
             <div className="flex justify-between h-16 items-center">
               <div className="flex items-center">
                 <Link to="/app" className="flex items-center">
@@ -91,7 +91,7 @@ export default function Layout() {
           </div>
         </nav>
 
-        <main className={`flex-1 ${isLeadRelated && !isContentFlow ? 'ml-0' : ''}`}>
+        <main className="flex-1 overflow-x-auto">
           <Outlet />
         </main>
       </div>

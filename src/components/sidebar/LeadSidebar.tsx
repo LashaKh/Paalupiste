@@ -8,7 +8,8 @@ import {
   Settings,
   BarChart3,
   Users,
-  Plus
+  Plus,
+  LineChart
 } from 'lucide-react';
 
 interface LeadSidebarProps {
@@ -39,13 +40,13 @@ const LeadSidebar: React.FC<LeadSidebarProps> = ({ isOpen, setIsOpen, currentPat
     },
     { 
       path: '/app/history', 
-      icon: <History className="w-5 h-5" />, 
-      label: 'Lead-Gen History',
+      icon: <LineChart className="w-5 h-5" />, 
+      label: 'Lead Generation History',
     },
     { 
       path: '/app/leads/analytics', 
       icon: <BarChart3 className="w-5 h-5" />, 
-      label: 'Analytics',
+      label: 'Advanced Analytics',
       soon: true
     },
     { 

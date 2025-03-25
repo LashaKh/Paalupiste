@@ -16,7 +16,7 @@ import SocialMediaPosts from './pages/SocialMediaPosts';
 import BrochureGeneration from './pages/BrochureGeneration';
 import VideoGeneration from './pages/VideoGeneration';
 import ProtectedRoute from './components/routes/ProtectedRoute';
-import GenerationHistory from './pages/GenerationHistory';
+import LeadGenHistory from './pages/LeadGenHistory';
 
 function App() {
   return (
@@ -34,6 +34,7 @@ function App() {
           <Route path="leads">
             <Route index element={<GenerateLeads />} />
             <Route path="table" element={<LeadsTable />} />
+            <Route path="history" element={<LeadGenHistory />} />
           </Route>
           <Route path="content" element={<ContentGeneration />} />
           <Route path="content/article" element={<ArticleGeneration />} />
@@ -43,7 +44,7 @@ function App() {
           <Route path="content/video" element={<VideoGeneration />} />
           <Route path="content/table" element={<ContentTable />} />
           <Route path="kb" element={<KnowledgeBase />} />
-          <Route path="history" element={<GenerationHistory />} />
+          <Route path="history" element={<LeadGenHistory />} />
         </Route>
       </Routes>
     </BrowserRouter>

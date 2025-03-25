@@ -10,6 +10,23 @@ interface WebhookResponse {
 
 export class LeadGenerationService {
   private static WEBHOOK_URL = 'https://hook.eu2.make.com/8xqjvc4pyrhei7f1nc3w6364sqahzkj5';
+  private static IMPORT_WEBHOOK_URL = 'https://hook.eu2.make.com/neljqr5sqfmzh0cfagnkzdl8a9nmtr3b';
+
+  /**
+   * Get the correct webhook URL for importing leads
+   */
+  static getImportWebhookUrl() {
+    // Use environment variable if available
+    const webhookUrl = import.meta.env.VITE_MAKE_WEBHOOK_URL;
+    
+    // Default webhook URL as fallback
+    const defaultWebhook = LeadGenerationService.IMPORT_WEBHOOK_URL;
+    
+    // Log which URL we're using
+    console.log('Using webhook URL:', webhookUrl || defaultWebhook);
+    
+    return webhookUrl || defaultWebhook;
+  }
 
   async generateLeads(
     formData: FormData,

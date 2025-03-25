@@ -1,87 +1,63 @@
-import React, { createContext, useContext, useState } from 'react';
-import { useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import { GenerationHistory } from '../types';
 import { supabase } from '../lib/supabase';
 import { useAuth } from './AuthContext';
+import { useToast } from '../hooks/useToast';
 
 interface GenerationHistoryContextType {
   history: GenerationHistory[];
   addGeneration: (generation: Omit<GenerationHistory, 'id'>) => void;
   deleteGeneration: (id: string) => Promise<void>;
+  ensureHistoryEntries: () => Promise<void>;
+  loading: boolean;
+  error: Error | null;
+  refreshGenerations: () => Promise<void>;
 }
 
-const GenerationHistoryContext = createContext<GenerationHistoryContextType>({
-  history: [],
-  addGeneration: () => {},
-  deleteGeneration: async () => {},
-});
+const GenerationHistoryContext = createContext<GenerationHistoryContextType | undefined>(undefined);
 
-export const GenerationHistoryProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export function GenerationHistoryProvider({ children }: { children: React.ReactNode }) {
   const [history, setHistory] = useState<GenerationHistory[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
   const { user } = useAuth();
+  const { showToast } = useToast();
 
-  useEffect(() => {
-    if (user) {
-      loadHistory();
-    }
-  }, [user]);
+  const fetchGenerations = async () => {
+    if (!user) return;
 
-  const loadHistory = async () => {
     try {
-      if (!user) {
-        return;
-      }
-
+      setLoading(true);
       const { data, error } = await supabase
-        .from('lead_history') 
-        .select(`
-          id,
-          user_id,
-          product_name,
-          product_description,
-          location,
-          industries,
-          company_size,
-          additional_industries,
-          status,
-          sheet_link,
-          sheet_id,
-          error_message,
-          timestamp
-        `)
+        .from('lead_history')
+        .select('*')
+        .eq('user_id', user.id)
         .order('timestamp', { ascending: false });
 
-      if (error) {
-        console.error('Supabase error:', error);
-        setHistory([]);
-        return;
-      }
-      
-      // Map database fields to frontend model
-      const mappedHistory: GenerationHistory[] = (data || []).map(item => ({
-        id: item.id,
-        industries: item.industries || [],
-        companySize: item.company_size || '',
-        additionalIndustries: item.additional_industries || '',
-        productName: item.product_name,
-        productDescription: item.product_description,
-        location: item.location,
-        status: item.status as 'success' | 'error',
-        sheetLink: item.sheet_link,
-        sheetId: item.sheet_id,
-        errorMessage: item.error_message,
-        timestamp: item.timestamp
+      if (error) throw error;
+
+      // Map snake_case to camelCase
+      const mappedData = (data || []).map(entry => ({
+        id: entry.id,
+        productName: entry.product_name,
+        productDescription: entry.product_description,
+        industries: entry.industries || [],
+        companySize: entry.company_size || '',
+        additionalIndustries: entry.additional_industries || '',
+        location: entry.location,
+        status: entry.status,
+        sheetLink: entry.sheet_link,
+        sheetId: entry.sheet_id,
+        errorMessage: entry.error_message,
+        timestamp: entry.timestamp
       }));
-      
-      setHistory(mappedHistory);
-    } catch (error) {
-      if (error instanceof Error) {
-        console.error('Error loading history:', error.message);
-      } else {
-        console.error('Unknown error loading history:', error);
-      }
-      // Set empty history on error to prevent UI issues
-      setHistory([]);
+
+      setHistory(mappedData);
+    } catch (err) {
+      setError(err instanceof Error ? err : new Error('Failed to fetch generations'));
+      showToast('Failed to load generation history', 'error');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -89,7 +65,7 @@ export const GenerationHistoryProvider: React.FC<{ children: React.ReactNode }> 
     if (!user) return;
 
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('lead_history')
         .insert({
           user_id: user.id,
@@ -98,18 +74,43 @@ export const GenerationHistoryProvider: React.FC<{ children: React.ReactNode }> 
           industries: generation.industries,
           company_size: generation.companySize,
           additional_industries: generation.additionalIndustries,
-          location: generation.location,
+          location: typeof generation.location === 'string'
+            ? generation.location
+            : {
+                country: generation.location.country,
+                state: generation.location.state || ''
+              },
           status: generation.status,
           sheet_link: generation.sheetLink,
           sheet_id: generation.sheetId,
           error_message: generation.errorMessage,
           timestamp: generation.timestamp
-        });
+        })
+        .select();
 
       if (error) throw error;
       
-      // Reload history to get the server-generated ID
-      await loadHistory();
+      // Add the new entry to the state with the server-generated ID
+      if (data && data.length > 0) {
+        const newEntry: GenerationHistory = {
+          id: data[0].id,
+          industries: generation.industries || [],
+          companySize: generation.companySize || '',
+          additionalIndustries: generation.additionalIndustries || '',
+          productName: generation.productName,
+          productDescription: generation.productDescription,
+          location: generation.location,
+          status: generation.status,
+          sheetLink: generation.sheetLink,
+          sheetId: generation.sheetId,
+          errorMessage: generation.errorMessage,
+          timestamp: generation.timestamp
+        };
+        setHistory(prev => [newEntry, ...prev]);
+      } else {
+        // Fallback: reload history to ensure consistency
+        await fetchGenerations();
+      }
     } catch (error) {
       console.error('Error saving history:', error);
       
@@ -119,6 +120,9 @@ export const GenerationHistoryProvider: React.FC<{ children: React.ReactNode }> 
         ...generation,
       };
       setHistory(prev => [newEntry, ...prev]);
+      
+      // Reload to ensure consistency
+      setTimeout(fetchGenerations, 1000);
     }
   };
 
@@ -129,22 +133,71 @@ export const GenerationHistoryProvider: React.FC<{ children: React.ReactNode }> 
       const { error } = await supabase
         .from('lead_history')
         .delete()
-        .eq('id', id);
+        .eq('id', id)
+        .eq('user_id', user.id);
 
       if (error) throw error;
-      
+
+      // Update local state
       setHistory(prev => prev.filter(entry => entry.id !== id));
+    } catch (err) {
+      throw err instanceof Error ? err : new Error('Failed to delete generation');
+    }
+  };
+
+  // Fetch generations on mount and when user changes
+  useEffect(() => {
+    fetchGenerations();
+  }, [user]);
+
+  // This function is simplified to no longer create default entries
+  const ensureHistoryEntries = async () => {
+    try {
+      if (!user) {
+        console.log("GenerationHistoryContext: No user available for ensureHistoryEntries");
+        return;
+      }
+
+      console.log("GenerationHistoryContext: Checking if history entries exist");
+      
+      const { count, error } = await supabase
+        .from('lead_history')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id);
+      
+      if (error) {
+        console.error('GenerationHistoryContext: Error checking history entries:', error);
+        return;
+      }
+      
+      // No longer creating default entries, just logging the count
+      console.log(`GenerationHistoryContext: Found ${count} existing entries`);
     } catch (error) {
-      console.error('Error deleting history entry:', error);
-      throw error;
+      console.error('GenerationHistoryContext: Error in ensureHistoryEntries:', error);
     }
   };
 
   return (
-    <GenerationHistoryContext.Provider value={{ history, addGeneration, deleteGeneration }}>
+    <GenerationHistoryContext.Provider
+      value={{
+        history,
+        addGeneration,
+        deleteGeneration,
+        ensureHistoryEntries,
+        loading,
+        error,
+        refreshGenerations: fetchGenerations
+      }}
+    >
       {children}
     </GenerationHistoryContext.Provider>
   );
-};
+}
 
-export const useGenerationHistory = () => useContext(GenerationHistoryContext);
+export function useGenerationHistory() {
+  const context = useContext(GenerationHistoryContext);
+  if (context === undefined) {
+    throw new Error('useGenerationHistory must be used within a GenerationHistoryProvider');
+  }
+  return context;
+}

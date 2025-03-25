@@ -11,6 +11,7 @@ import { ArticlesProvider } from './contexts/ArticlesContext';
 import { BrochureProvider } from './contexts/BrochureContext';
 import { SocialPostsProvider } from './contexts/SocialPostsContext';
 import { ToastProvider } from './contexts/ToastContext';
+import { LeadImportsProvider } from './contexts/LeadImportsContext';
 
 const rootElement = document.getElementById('root');
 
@@ -29,7 +30,9 @@ createRoot(rootElement).render(
                 <SocialPostsProvider>
                   <BrochureProvider>
                     <NewsletterProvider>
-                      <App />
+                      <LeadImportsProvider>
+                        <App />
+                      </LeadImportsProvider>
                     </NewsletterProvider>
                   </BrochureProvider>
                 </SocialPostsProvider>

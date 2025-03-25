@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Building2, Globe, Mail, Phone, MapPin, Calendar, FileText, User, Briefcase, Linkedin } from 'lucide-react';
+import { X, Building2, Globe, Mail, Phone, MapPin, Calendar, FileText, User, Briefcase, Linkedin, AlertCircle, FileTextIcon } from 'lucide-react';
 import { Lead } from '../../types/leads';
 
 interface LeadDetailsModalProps {
@@ -20,7 +20,7 @@ export function LeadDetailsModal({ lead, onClose }: LeadDetailsModalProps) {
               <h2 className="text-2xl font-bold text-gray-900">{lead.companyName}</h2>
               {lead.website && (
                 <a 
-                  href={lead.website}
+                  href={lead.website.startsWith('http') ? lead.website : `https://${lead.website}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-sm text-primary hover:text-primary-hover flex items-center mt-1"
@@ -40,7 +40,7 @@ export function LeadDetailsModal({ lead, onClose }: LeadDetailsModalProps) {
 
           {/* Content */}
           <div className="p-6">
-            <div className="grid grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               {/* Company Information */}
               <div className="space-y-6">
                 <div>
@@ -50,10 +50,11 @@ export function LeadDetailsModal({ lead, onClose }: LeadDetailsModalProps) {
                   </h3>
                   
                   <div className="space-y-4">
+                    {/* Company description is now prominently displayed */}
                     {lead.company_description && (
-                      <div>
-                        <p className="text-sm text-gray-500 mb-1">Description</p>
-                        <p className="text-gray-900">{lead.company_description}</p>
+                      <div className="bg-gray-50 p-3 rounded-lg border border-gray-100">
+                        <p className="text-sm font-medium text-gray-500 mb-2">Company Description</p>
+                        <p className="text-gray-900 whitespace-pre-wrap text-sm">{lead.company_description}</p>
                       </div>
                     )}
                     
@@ -142,10 +143,19 @@ export function LeadDetailsModal({ lead, onClose }: LeadDetailsModalProps) {
                 </h3>
                 
                 <div className="space-y-4">
+                  {/* Show a message if no decision maker info is available */}
+                  {!lead.decisionMakerName && !lead.decisionMakerTitle && 
+                   !lead.decisionMakerEmail && !lead.decisionMakerLinkedIn && (
+                    <div className="flex items-center text-gray-500 bg-gray-50 p-4 rounded-lg">
+                      <AlertCircle className="w-5 h-5 mr-2 text-amber-500" />
+                      <p>No decision maker information available yet.</p>
+                    </div>
+                  )}
+
                   {lead.decisionMakerName && (
                     <div>
                       <p className="text-sm text-gray-500 mb-1">Name</p>
-                      <p className="text-gray-900">{lead.decisionMakerName}</p>
+                      <p className="text-gray-900 font-medium">{lead.decisionMakerName}</p>
                     </div>
                   )}
 
@@ -180,7 +190,7 @@ export function LeadDetailsModal({ lead, onClose }: LeadDetailsModalProps) {
                       <div>
                         <p className="text-sm text-gray-500 mb-1">LinkedIn</p>
                         <a 
-                          href={lead.decisionMakerLinkedIn}
+                          href={lead.decisionMakerLinkedIn.startsWith('http') ? lead.decisionMakerLinkedIn : `https://${lead.decisionMakerLinkedIn}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-primary hover:text-primary-hover"

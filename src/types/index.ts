@@ -13,16 +13,31 @@ export interface GenerationHistory {
   location: {
     country: string;
     state: string;
-  };
+  } | string;
   industries: string[];
   companySize: string;
   additionalIndustries?: string;
   timestamp: string;
-  status: 'success' | 'error';
+  status: 'success' | 'error' | 'completed';
   leadsCount?: number;
   sheetLink?: string;
   sheetId?: string;
   errorMessage?: string;
-  productName: string;
-  productDescription: string;
+  productName?: string;
+  productDescription?: string;
+  formData?: FormData;
+  results?: any;
+}
+
+export interface SuccessModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  sheetLink?: string;
+}
+
+export interface GenerationHistoryContextType {
+  history: GenerationHistory[];
+  addToHistory: (entry: GenerationHistory) => void;
+  addGeneration: (entry: GenerationHistory) => void;
+  clearHistory: () => void;
 }

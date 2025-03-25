@@ -14,10 +14,20 @@ exports.handler = async (event) => {
     return { statusCode: 204, headers };
   }
 
+  console.log('[DEBUG] Webhook proxy received request:', {
+    method: event.httpMethod,
+    path: event.path,
+    headers: event.headers,
+    queryStringParameters: event.queryStringParameters,
+    body: event.body ? JSON.parse(event.body) : null
+  });
+
   try {
     // Extract path after /webhook to forward to Make
     const path = event.path.replace('/.netlify/functions/webhook', '');
     const url = path ? `${WEBHOOK_URL}${path}` : WEBHOOK_URL;
+    
+    console.log('[DEBUG] Forwarding to Make URL:', url);
     
     const response = await fetch(url, {
       method: event.httpMethod,
@@ -26,6 +36,12 @@ exports.handler = async (event) => {
     });
 
     const data = await response.text();
+    
+    console.log('[DEBUG] Make response:', {
+      status: response.status,
+      headers: response.headers,
+      data: data
+    });
 
     return {
       statusCode: response.status,
@@ -33,11 +49,11 @@ exports.handler = async (event) => {
       body: data
     };
   } catch (error) {
-    console.error('Webhook proxy error:', error);
+    console.error('[DEBUG] Webhook proxy error:', error);
     return {
       statusCode: 500,
       headers,
-      body: JSON.stringify({ error: 'Failed to proxy request' })
+      body: JSON.stringify({ error: 'Failed to proxy request', details: error.message })
     };
   }
 };

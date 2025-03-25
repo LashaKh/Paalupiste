@@ -26,101 +26,145 @@ export function LeadTableHeader({
   isDeletingSelected
 }: LeadTableHeaderProps) {
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  
+  const handleRefresh = () => {
+    setIsRefreshing(true);
+    try {
+      onRefresh();
+      // Set a timeout to reset the refreshing state in case onRefresh doesn't complete
+      setTimeout(() => {
+        setIsRefreshing(false);
+      }, 5000);
+    } catch (error) {
+      console.error('Error during refresh:', error);
+      setIsRefreshing(false);
+    }
+  };
 
   return (
-    <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-      <div className="flex items-center gap-4">
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-gray-600">
-            {table.getSelectedRowModel().rows.length} selected
-          </span>
-          {table.getSelectedRowModel().rows.length > 0 && !isDeletingSelected && (
-            <div className="flex items-center gap-2">
-              <button
-                onClick={onDeleteSelected}
-                className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
-              >
-                <Trash2 className="w-4 h-4 mr-1.5" />
-                Delete Selected
-              </button>
-              <button
-                onClick={() => table.resetRowSelection()}
-                className="text-sm text-primary hover:text-primary-hover"
-              >
-                Clear selection
-              </button>
-            </div>
-          )}
-          {table.getSelectedRowModel().rows.length > 0 && isDeletingSelected && (
-            <button
-              disabled
-              className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-gray-500 bg-gray-100 rounded-lg cursor-not-allowed"
-            >
-              <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
-              Deleting...
-            </button>
-          )}
-        </div>
-        <div className="relative">
+    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-6">
+      <div className="flex flex-col sm:flex-row gap-3 sm:items-center flex-1 max-w-2xl">
+        <div className="relative flex-1">
           <input
-            type="text"
-            placeholder="Search leads..."
-            className="w-60 px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
-            value={globalFilter}
+            value={globalFilter || ''}
             onChange={(e) => setGlobalFilter(e.target.value)}
+            placeholder="Search leads..."
+            className="w-full h-10 pl-10 pr-4 py-2 bg-white border border-gray-300 rounded-lg text-sm text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition duration-150 ease-in-out"
           />
+          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-5 w-5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+              />
+            </svg>
+          </div>
         </div>
-        <button 
+        <button
           onClick={() => setIsFiltersOpen(true)}
-          className="inline-flex items-center px-3 py-1.5 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+          className="relative inline-flex justify-center items-center h-10 px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition duration-150 ease-in-out"
         >
           <Filter className="w-4 h-4 mr-2" />
           Filters
-        </button>
-        <button className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
-          <Settings className="w-4 h-4 mr-2" />
-          Columns
-        </button>
-        <button
-          onClick={onRefresh}
-          className="inline-flex items-center px-3 py-1.5 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
-        >
-          <RefreshCw className="w-4 h-4 mr-2" />
-          Refresh
-        </button>
-      </div>
-      <div className="flex items-center gap-4">
-        <button
-          onClick={() => onExport('csv')}
-          className="inline-flex items-center px-3 py-1.5 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
-        >
-          <Download className="w-4 h-4 mr-2" />
-          Export CSV
-        </button>
-        <button
-          onClick={() => onExport('excel')}
-          className="inline-flex items-center px-3 py-1.5 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
-        >
-          <Download className="w-4 h-4 mr-2" />
-          Export Excel
-        </button>
-        <button
-          onClick={onAddLead}
-          className="inline-flex items-center px-3 py-1.5 rounded-lg text-sm font-medium text-white bg-primary hover:bg-primary-hover">
-          <Plus className="w-4 h-4 mr-2" />
-          Add Lead
+          {table.getState().columnFilters.length > 0 && (
+            <span className="absolute -top-1 -right-1 flex items-center justify-center w-5 h-5 bg-primary text-white text-xs font-bold rounded-full">
+              {table.getState().columnFilters.length}
+            </span>
+          )}
         </button>
       </div>
       
-      <LeadFiltersModal
-        isOpen={isFiltersOpen}
-        onClose={() => setIsFiltersOpen(false)}
-        columns={table.getAllColumns()}
-        columnFilters={table.getState().columnFilters}
-        onFilter={(filters) => {
-          table.setColumnFilters(filters);
-        }}
-      />
+      <div className="flex flex-wrap items-center gap-2">
+        <button
+          onClick={handleRefresh}
+          className={`relative inline-flex justify-center items-center h-10 px-4 py-2 rounded-lg text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all duration-150 ${
+            isRefreshing 
+              ? 'bg-green-600 text-white border-transparent focus:ring-green-500' 
+              : 'border border-green-600 text-green-600 bg-white hover:bg-green-50 focus:ring-green-500'
+          }`}
+          disabled={isRefreshing}
+        >
+          {isRefreshing ? (
+            <>
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              Refreshing...
+            </>
+          ) : (
+            <>
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Refresh
+            </>
+          )}
+        </button>
+
+        <div className="hidden sm:block w-px h-6 bg-gray-300 mx-2"></div>
+
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => onExport('csv')}
+            className="inline-flex justify-center items-center h-10 px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition duration-150 ease-in-out"
+          >
+            <Download className="w-4 h-4 mr-2" />
+            CSV
+          </button>
+          <button
+            onClick={() => onExport('excel')}
+            className="inline-flex justify-center items-center h-10 px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition duration-150 ease-in-out"
+          >
+            <Download className="w-4 h-4 mr-2" />
+            Excel
+          </button>
+        </div>
+
+        <div className="hidden sm:block w-px h-6 bg-gray-300 mx-2"></div>
+
+        <button
+          onClick={onAddLead}
+          className="inline-flex justify-center items-center h-10 px-4 py-2 bg-primary border border-transparent rounded-lg text-sm font-medium text-white hover:bg-primary-hover shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 transition duration-150 ease-in-out"
+        >
+          <Plus className="w-4 h-4 mr-2" />
+          Add Lead
+        </button>
+
+        {Object.keys(table.getState().rowSelection).length > 0 && (
+          <button
+            onClick={onDeleteSelected}
+            className="inline-flex justify-center items-center h-10 px-4 py-2 bg-red-600 border border-transparent rounded-lg text-sm font-medium text-white hover:bg-red-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition duration-150 ease-in-out"
+            disabled={isDeletingSelected}
+          >
+            {isDeletingSelected ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Deleting...
+              </>
+            ) : (
+              <>
+                <Trash2 className="w-4 h-4 mr-2" />
+                Delete Selected ({Object.keys(table.getState().rowSelection).length})
+              </>
+            )}
+          </button>
+        )}
+      </div>
+
+      {isFiltersOpen && (
+        <LeadFiltersModal
+          isOpen={isFiltersOpen}
+          onClose={() => setIsFiltersOpen(false)}
+          columns={table.getAllColumns()}
+          columnFilters={table.getState().columnFilters}
+          onFilter={(filters) => table.setColumnFilters(filters)}
+        />
+      )}
     </div>
   );
 }

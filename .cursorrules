@@ -1,0 +1,32 @@
+# Cursor Rules
+
+## Project Patterns
+1. TypeScript-first development
+2. Tailwind CSS for styling
+3. Supabase for backend services
+4. Netlify for deployment
+
+## Code Organization
+- TypeScript strict mode enabled
+- ESLint for code quality
+- Component-based architecture
+
+## Development Workflow
+1. Follow TypeScript best practices
+2. Maintain Memory Bank documentation
+3. Regular commits with clear messages
+4. Test-driven development when applicable
+
+## Project Preferences
+- Keep code DRY (Don't Repeat Yourself)
+- Maintain clean and organized codebase
+- Document significant changes
+- Follow established patterns
+
+## Critical Paths
+[To be documented as discovered]
+
+## Known Challenges
+[To be documented as identified]
+
+Note: This file will be updated as new patterns and preferences are discovered. 
