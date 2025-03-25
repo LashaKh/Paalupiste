@@ -58,6 +58,7 @@ import { enrichLeads, enrichCompanyDetails } from '../lib/api';
 import Modal from '../components/ui/Modal';
 import { useLeadImports } from '../hooks/useLeadImports';
 import { useNavigate } from 'react-router-dom';
+import { LeadGenerationService } from '../lib/LeadGenerationService';
 
 // Define types
 interface GenerationEntry {
@@ -562,7 +563,10 @@ export default function LeadGenHistory() {
 
     setIsImporting(true);
     try {
-      const result = await fetch(`https://hook.eu2.make.com/tyxev7vqtidsni83cqouvg6elo45pk5v`, {
+      const webhookUrl = LeadGenerationService.getImportWebhookUrl();
+      console.log('Using import webhook URL:', webhookUrl);
+      
+      const result = await fetch(webhookUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

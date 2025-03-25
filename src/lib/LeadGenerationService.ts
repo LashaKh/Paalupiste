@@ -16,16 +16,7 @@ export class LeadGenerationService {
    * Get the correct webhook URL for importing leads
    */
   static getImportWebhookUrl() {
-    // Use environment variable if available
-    const webhookUrl = import.meta.env.VITE_MAKE_WEBHOOK_URL;
-    
-    // Default webhook URL as fallback
-    const defaultWebhook = LeadGenerationService.IMPORT_WEBHOOK_URL;
-    
-    // Log which URL we're using
-    console.log('Using webhook URL:', webhookUrl || defaultWebhook);
-    
-    return webhookUrl || defaultWebhook;
+    return LeadGenerationService.IMPORT_WEBHOOK_URL;
   }
 
   async generateLeads(
