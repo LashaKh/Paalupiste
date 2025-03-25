@@ -361,7 +361,11 @@ export default function ProductForm() {
           productName: "Lead Generation",
           productDescription: `Generated leads for ${formData.industries.join(", ")} in ${formData.location.country}${formData.location.state ? `, ${formData.location.state}` : ''}`,
           sheetId: response.sheetId,
-          sheetLink: response.sheetLink
+          sheetLink: response.sheetLink,
+          leadsCount: response.leadsCount || 0,
+          results: {
+            convertedLeads: 0 // Initialize with 0, will be updated when leads are converted
+          }
         };
 
         addGeneration(historyEntry);

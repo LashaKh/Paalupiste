@@ -8,6 +8,14 @@ interface WebhookResponse {
   requestId: string;
 }
 
+interface GenerationResponse {
+  success: boolean;
+  sheetId?: string;
+  sheetLink?: string;
+  error?: string;
+  leadsCount?: number;
+}
+
 export class LeadGenerationService {
   private static WEBHOOK_URL = 'https://hook.eu2.make.com/8xqjvc4pyrhei7f1nc3w6364sqahzkj5';
   private static IMPORT_WEBHOOK_URL = 'https://hook.eu2.make.com/neljqr5sqfmzh0cfagnkzdl8a9nmtr3b';

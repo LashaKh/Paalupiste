@@ -26,7 +26,10 @@ export interface GenerationHistory {
   productName?: string;
   productDescription?: string;
   formData?: FormData;
-  results?: any;
+  results?: {
+    convertedLeads?: number;
+    [key: string]: any;
+  };
 }
 
 export interface SuccessModalProps {

@@ -251,7 +251,7 @@ export default function LeadGenHistory() {
       try {
         await ensureHistoryEntries();
         const processedHistory = history
-          .filter(entry => entry.productName && (entry.status === 'success' || entry.status === 'error'))
+          .filter(entry => entry.productName && (entry.status === 'success' || entry.status === 'error' || entry.status === 'completed'))
           .map(entry => ({
             id: entry.id,
             location: entry.location,
@@ -266,7 +266,7 @@ export default function LeadGenHistory() {
             productName: entry.productName || '',
             productDescription: entry.productDescription || '',
             leadCount: entry.leadsCount || 0,
-            convertedLeads: 0 // This property doesn't exist in GenerationHistory
+            convertedLeads: entry.results?.convertedLeads || 0 // Get converted leads from results if available
           }));
         setData(processedHistory);
       } catch (error) {
@@ -303,6 +303,19 @@ export default function LeadGenHistory() {
     
     return filtered;
   }, [data, statusFilter, dateRangeFilter]);
+  
+  // Calculate stats when filteredData changes
+  useEffect(() => {
+    const successfulGenerations = filteredData.filter(entry => entry.status === 'success');
+    const totalLeads = filteredData.reduce((sum, entry) => sum + (entry.leadCount || 0), 0);
+    
+    setStats({
+      totalGenerations: filteredData.length,
+      totalLeads,
+      successRate: filteredData.length > 0 ? (successfulGenerations.length / filteredData.length) * 100 : 0,
+      averageLeadsPerGeneration: successfulGenerations.length > 0 ? totalLeads / successfulGenerations.length : 0
+    });
+  }, [filteredData]);
   
   // Handle export
   const handleExport = () => {

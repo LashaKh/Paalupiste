@@ -20,6 +20,32 @@ import { useLeadImports } from '../hooks/useLeadImports';
 import { Trash2, Calendar, Users, CheckCircleIcon, MapPin, Building } from 'lucide-react';
 import { Package } from 'lucide-react';
 
+// Helper function to format location
+const formatLocation = (location: string | { country: string; state?: string } | undefined): string => {
+  if (!location) return 'Unknown location';
+  
+  // If location is a string and looks like JSON, try to parse it
+  if (typeof location === 'string' && location.startsWith('{')) {
+    try {
+      const parsed = JSON.parse(location);
+      if (parsed && typeof parsed === 'object') {
+        return `${parsed.country}${parsed.state ? `, ${parsed.state}` : ''}`;
+      }
+    } catch (e) {
+      // If parsing fails, return the original string
+      return location;
+    }
+  }
+  
+  // If location is already an object
+  if (typeof location === 'object') {
+    return `${location.country}${location.state ? `, ${location.state}` : ''}`;
+  }
+  
+  // If it's a plain string
+  return location;
+};
+
 export default function LeadsTable() {
   const { user } = useAuth();
   const { showToast } = useToast();
@@ -210,10 +236,7 @@ export default function LeadsTable() {
                           {importItem.sourceDetails?.location && (
                             <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700">
                               <MapPin className="w-3.5 h-3.5 mr-1" />
-                              {typeof importItem.sourceDetails.location === 'string' 
-                                ? importItem.sourceDetails.location
-                                : `${importItem.sourceDetails.location.country}${importItem.sourceDetails.location.state ? `, ${importItem.sourceDetails.location.state}` : ''}`
-                              }
+                              {formatLocation(importItem.sourceDetails.location)}
                             </span>
                           )}
                           {importItem.sourceDetails?.industries && importItem.sourceDetails.industries.length > 0 && (
