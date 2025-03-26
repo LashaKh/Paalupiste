@@ -194,8 +194,8 @@ export function EnhancedTable<T extends Record<string, any>>({
                   )}
                   
                   {columns.map((column, index) => {
-                    const value = column.accessor.includes('.') 
-                      ? column.accessor.split('.').reduce((obj, key) => obj?.[key], item)
+                    const value = typeof column.accessor === 'string' && column.accessor.includes('.') 
+                      ? column.accessor.split('.').reduce((obj: any, key: string) => obj?.[key], item)
                       : item[column.accessor as keyof T];
                     
                     return (
