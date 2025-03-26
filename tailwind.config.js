@@ -17,6 +17,7 @@ export default {
         'bounce-subtle': 'bounce-subtle 3s infinite',
         'spin-slow': 'spin 3s linear infinite',
         'progress': 'progress 2s ease-in-out infinite',
+        'progress-pulse': 'progress-pulse 3s ease-in-out infinite',
         'pulse': 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
         'fade-in': 'fade-in 0.5s ease-out',
         'slide-up': 'slide-up 0.5s ease-out',
@@ -39,6 +40,11 @@ export default {
           '0%': { transform: 'translateX(-100%)' },
           '50%': { transform: 'translateX(0%)' },
           '100%': { transform: 'translateX(100%)' },
+        },
+        'progress-pulse': {
+          '0%': { transform: 'translateX(-100%)', backgroundSize: '200% 100%' },
+          '50%': { transform: 'translateX(0%)', backgroundSize: '200% 100%' },
+          '100%': { transform: 'translateX(100%)', backgroundSize: '200% 100%' },
         },
         'fade-in': {
           '0%': { opacity: '0' },
