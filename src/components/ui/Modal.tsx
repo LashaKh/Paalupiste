@@ -24,14 +24,27 @@ export default function Modal({ children, onClose }: ModalProps) {
   // Apply body styles to prevent scrolling behind modal
   useEffect(() => {
     // Save the original body style
-    const originalStyle = window.getComputedStyle(document.body).overflow;
+    const originalOverflow = document.body.style.overflow;
+    const originalPaddingRight = document.body.style.paddingRight;
+    
+    // Calculate scrollbar width to prevent layout shift
+    const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
     
     // Set overflow hidden to prevent scrolling behind modal
     document.body.style.overflow = 'hidden';
     
+    // Add padding right to prevent layout shift when scrollbar disappears
+    if (scrollbarWidth > 0) {
+      document.body.style.paddingRight = `${scrollbarWidth}px`;
+    }
+    
     // Cleanup function to restore original style
     return () => {
-      document.body.style.overflow = originalStyle;
+      // Use a slight delay to prevent flicker during transitions
+      setTimeout(() => {
+        document.body.style.overflow = originalOverflow;
+        document.body.style.paddingRight = originalPaddingRight;
+      }, 10);
     };
   }, []);
   
@@ -47,12 +60,12 @@ export default function Modal({ children, onClose }: ModalProps) {
       role="dialog"
     >
       <div 
-        className="relative bg-white rounded-xl p-6 max-w-lg w-full mx-4 shadow-2xl border border-gray-200 animate-scaleIn"
+        className="relative bg-white dark:bg-gray-800 rounded-xl p-6 max-w-lg w-full mx-4 shadow-2xl border border-gray-200 dark:border-gray-700 animate-scaleIn"
         onClick={(e) => e.stopPropagation()}
       >
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-full hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-300"
+          className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600"
           aria-label="Close"
         >
           <svg

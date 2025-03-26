@@ -6,6 +6,7 @@ export interface FormData {
   industries: string[];
   companySize: string;
   additionalIndustries?: string;
+  sheetLink?: string;
 }
 
 export interface GenerationHistory {

@@ -370,6 +370,7 @@ export default function ProductForm() {
 
         addGeneration(historyEntry);
         setGeneratedId(generationId);
+        setFormData(prev => ({ ...prev, sheetLink: response.sheetLink }));
         setShowSuccessModal(true);
       } else {
         showToast('Failed to generate leads. Please try again.', 'error');
@@ -384,7 +385,7 @@ export default function ProductForm() {
 
   const handleCloseSuccessModal = () => {
     setShowSuccessModal(false);
-    navigate(`/leads/${generatedId}`);
+    navigate('/app/leads/history');
   };
 
   const renderStepContent = (step: number) => {
@@ -643,6 +644,7 @@ export default function ProductForm() {
       <SuccessModal
         isOpen={showSuccessModal}
         onClose={handleCloseSuccessModal}
+        sheetLink={formData.sheetLink || ''}
       />
     </form>
   );
