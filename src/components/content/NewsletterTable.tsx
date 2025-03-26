@@ -25,11 +25,13 @@ interface EditingField {
 
 interface NewsletterTableProps {
   onAction: (action: string, itemType: string) => void;
+  loading?: boolean;
+  onRefresh?: () => void;
 }
 
-export function NewsletterTable({ onAction }: NewsletterTableProps) {
+export function NewsletterTable({ onAction, loading: propLoading, onRefresh }: NewsletterTableProps) {
   const [newsletters, setNewsletters] = useState<Newsletter[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState<boolean>(propLoading !== undefined ? propLoading : true);
   const [editingField, setEditingField] = useState<EditingField | null>(null);
   const [updatingApproval, setUpdatingApproval] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -38,6 +40,12 @@ export function NewsletterTable({ onAction }: NewsletterTableProps) {
   useEffect(() => {
     fetchNewsletters();
   }, []);
+
+  useEffect(() => {
+    if (propLoading !== undefined) {
+      setLoading(propLoading);
+    }
+  }, [propLoading]);
 
   const fetchNewsletters = async () => {
     try {
@@ -49,11 +57,20 @@ export function NewsletterTable({ onAction }: NewsletterTableProps) {
 
       if (error) throw error;
       setNewsletters(data || []);
+      
+      // If there's an external refresh callback, we don't set loading state here
+      if (!onRefresh) {
+        setLoading(false);
+      }
     } catch (error) {
       console.error('Error fetching newsletters:', error);
       showToast('Failed to load newsletters', 'error');
-    } finally {
       setLoading(false);
+    } finally {
+      if (onRefresh) {
+        // If there's an external refresh callback, let parent component manage loading state
+        onRefresh();
+      }
     }
   };
 

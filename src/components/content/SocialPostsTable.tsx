@@ -25,11 +25,13 @@ interface SocialPost {
 interface SocialPostsTableProps {
   platform: 'linkedin' | 'facebook';
   onAction: (action: string, itemType: string) => void;
+  loading?: boolean;
+  onRefresh?: () => void;
 }
 
-export function SocialPostsTable({ platform, onAction }: SocialPostsTableProps) {
+export function SocialPostsTable({ platform, onAction, loading: propLoading, onRefresh }: SocialPostsTableProps) {
   const [posts, setPosts] = useState<SocialPost[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState<boolean>(propLoading !== undefined ? propLoading : true);
   const [editingField, setEditingField] = useState<EditingField | null>(null);
   const [updatingApproval, setUpdatingApproval] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -47,6 +49,12 @@ export function SocialPostsTable({ platform, onAction }: SocialPostsTableProps) 
     fetchPosts();
   }, [platform]);
 
+  useEffect(() => {
+    if (propLoading !== undefined) {
+      setLoading(propLoading);
+    }
+  }, [propLoading]);
+
   const fetchPosts = async () => {
     try {
       setLoading(true);
@@ -59,11 +67,20 @@ export function SocialPostsTable({ platform, onAction }: SocialPostsTableProps) 
       if (error) throw error;
 
       setPosts(data || []);
+      
+      // If there's an external refresh callback, we don't need to set loading state here
+      if (!onRefresh) {
+        setLoading(false);
+      }
     } catch (error) {
       console.error('Error fetching social posts:', error);
       showToast(`Failed to load ${getPlatformName()} posts`, 'error');
-    } finally {
       setLoading(false);
+    } finally {
+      if (onRefresh) {
+        // If there's an external refresh callback, let parent component manage loading state
+        onRefresh();
+      }
     }
   };
 
