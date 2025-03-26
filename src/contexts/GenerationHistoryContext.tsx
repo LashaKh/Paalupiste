@@ -12,6 +12,8 @@ interface GenerationHistoryContextType {
   loading: boolean;
   error: Error | null;
   refreshGenerations: () => Promise<void>;
+  updateEnrichmentStatus: (id: string, status: 'not_started' | 'in_progress' | 'completed') => Promise<void>;
+  checkEnrichmentStatus: (id: string) => Promise<{ status: string; count: number; timestamp: string | null }>;
 }
 
 const GenerationHistoryContext = createContext<GenerationHistoryContextType | undefined>(undefined);
@@ -49,7 +51,10 @@ export function GenerationHistoryProvider({ children }: { children: React.ReactN
         sheetLink: entry.sheet_link,
         sheetId: entry.sheet_id,
         errorMessage: entry.error_message,
-        timestamp: entry.timestamp
+        timestamp: entry.timestamp,
+        enrichmentStatus: entry.enrichment_status || 'not_started',
+        enrichmentTimestamp: entry.enrichment_timestamp,
+        enrichmentCount: entry.enrichment_count || 0
       }));
 
       setHistory(mappedData);
@@ -177,6 +182,65 @@ export function GenerationHistoryProvider({ children }: { children: React.ReactN
     }
   };
 
+  // New method to update enrichment status
+  const updateEnrichmentStatus = async (id: string, status: 'not_started' | 'in_progress' | 'completed') => {
+    if (!user) return;
+
+    try {
+      const { error } = await supabase
+        .from('lead_history')
+        .update({ 
+          enrichment_status: status, 
+          enrichment_timestamp: new Date().toISOString()
+          // The enrichment_count will be updated automatically by the trigger
+        })
+        .eq('id', id)
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      // Update local state
+      setHistory(prev => prev.map(entry => 
+        entry.id === id 
+          ? { 
+              ...entry, 
+              enrichmentStatus: status, 
+              enrichmentTimestamp: new Date().toISOString(),
+              // Only increment the count for in_progress status, like the trigger does
+              enrichmentCount: status === 'in_progress' ? (entry.enrichmentCount || 0) + 1 : entry.enrichmentCount
+            } 
+          : entry
+      ));
+    } catch (err) {
+      throw err instanceof Error ? err : new Error('Failed to update enrichment status');
+    }
+  };
+
+  // New method to check enrichment status
+  const checkEnrichmentStatus = async (id: string) => {
+    if (!user) return { status: 'not_started', count: 0, timestamp: null };
+
+    try {
+      const { data, error } = await supabase
+        .from('lead_history')
+        .select('enrichment_status, enrichment_count, enrichment_timestamp')
+        .eq('id', id)
+        .eq('user_id', user.id)
+        .single();
+
+      if (error) throw error;
+
+      return { 
+        status: data.enrichment_status || 'not_started',
+        count: data.enrichment_count || 0,
+        timestamp: data.enrichment_timestamp 
+      };
+    } catch (err) {
+      console.error('Error checking enrichment status:', err);
+      return { status: 'not_started', count: 0, timestamp: null };
+    }
+  };
+
   return (
     <GenerationHistoryContext.Provider
       value={{
@@ -186,7 +250,9 @@ export function GenerationHistoryProvider({ children }: { children: React.ReactN
         ensureHistoryEntries,
         loading,
         error,
-        refreshGenerations: fetchGenerations
+        refreshGenerations: fetchGenerations,
+        updateEnrichmentStatus,
+        checkEnrichmentStatus
       }}
     >
       {children}

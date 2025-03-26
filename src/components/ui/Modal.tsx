@@ -60,12 +60,12 @@ export default function Modal({ children, onClose }: ModalProps) {
       role="dialog"
     >
       <div 
-        className="relative bg-white dark:bg-gray-800 rounded-xl p-6 max-w-lg w-full mx-4 shadow-2xl border border-gray-200 dark:border-gray-700 animate-scaleIn"
+        className="relative bg-white rounded-xl p-6 max-w-lg w-full mx-4 shadow-2xl border border-gray-200 animate-scaleIn"
         onClick={(e) => e.stopPropagation()}
       >
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600"
+          className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-full hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-300"
           aria-label="Close"
         >
           <svg

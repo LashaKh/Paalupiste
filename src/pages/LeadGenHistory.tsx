@@ -49,7 +49,7 @@ import {
   Package,
   XCircle
 } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, formatDistanceToNow } from 'date-fns';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../hooks/useToast';
@@ -79,6 +79,9 @@ interface GenerationEntry {
   productDescription: string;
   leadCount?: number;
   convertedLeads?: number;
+  enrichmentStatus?: 'not_started' | 'in_progress' | 'completed';
+  enrichmentTimestamp?: string;
+  enrichmentCount?: number;
 }
 
 interface StatCard {
@@ -108,6 +111,18 @@ const formatLocation = (location: string | { country: string; state?: string }):
   }
   
   return String(location);
+};
+
+// Helper function to format enrichment timestamp
+const formatEnrichmentTime = (timestamp: string | undefined): string => {
+  if (!timestamp) return 'Never';
+  
+  try {
+    const date = new Date(timestamp);
+    return `${formatDistanceToNow(date, { addSuffix: true })} (${format(date, 'MMM d, yyyy')})`;
+  } catch (e) {
+    return 'Invalid date';
+  }
 };
 
 // Status badge component
@@ -216,7 +231,16 @@ function extractSheetId(url: string): string | null {
 export default function LeadGenHistory() {
   const { user } = useAuth();
   const { showToast } = useToast();
-  const { history = [], deleteGeneration, addGeneration, ensureHistoryEntries, loading: contextLoading, refreshGenerations } = useGenerationHistory();
+  const { 
+    history = [], 
+    deleteGeneration, 
+    addGeneration, 
+    ensureHistoryEntries, 
+    loading: contextLoading, 
+    refreshGenerations,
+    updateEnrichmentStatus,
+    checkEnrichmentStatus
+  } = useGenerationHistory();
   const [isLoading, setIsLoading] = useState(true);
   const [data, setData] = useState<GenerationEntry[]>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
@@ -241,6 +265,7 @@ export default function LeadGenHistory() {
   const [isImporting, setIsImporting] = useState<boolean>(false);
   const [isEnriching, setIsEnriching] = useState<'contacts' | 'company' | null>(null);
   const [importedEntries, setImportedEntries] = useState<Set<string>>(new Set());
+  const [showEnrichWarningModal, setShowEnrichWarningModal] = useState<boolean>(false);
   const { createImport, importLeadsToImport } = useLeadImports();
   const navigate = useNavigate();
   
@@ -693,6 +718,43 @@ export default function LeadGenHistory() {
     }
   };
   
+  // Add a new function to handle enrichment request with check
+  const handleEnrichRequest = async () => {
+    if (!selectedEntry) return;
+    
+    try {
+      // First check local storage for enrichment history
+      const localEnrichmentKey = `enrichment_${selectedEntry.id}`;
+      const localEnrichmentData = localStorage.getItem(localEnrichmentKey);
+      
+      // Check database for enrichment status
+      const enrichmentData = await checkEnrichmentStatus(selectedEntry.id);
+      
+      // Show warning if either local storage OR database indicates prior enrichment
+      if (localEnrichmentData || enrichmentData.status === 'completed' || enrichmentData.count > 0) {
+        // Entry has already been enriched, show warning modal
+        setShowEnrichWarningModal(true);
+        console.log('Showing enrichment warning - previous enrichment detected');
+      } else {
+        // First time enrichment, show normal confirmation modal
+        setShowEnrichModal('contacts');
+      }
+    } catch (error) {
+      console.error('Error checking enrichment status:', error);
+      // If error occurs, check local storage as fallback
+      const localEnrichmentKey = `enrichment_${selectedEntry.id}`;
+      const localEnrichmentData = localStorage.getItem(localEnrichmentKey);
+      
+      if (localEnrichmentData) {
+        setShowEnrichWarningModal(true);
+        console.log('Showing enrichment warning (fallback) - previous enrichment detected in localStorage');
+      } else {
+        // Default to showing confirmation if no enrichment history found
+        setShowEnrichModal('contacts');
+      }
+    }
+  };
+  
   // Enrich leads with additional data
   const enrichData = async (type: 'contacts' | 'company') => {
     if (!selectedEntry || !user) {
@@ -707,6 +769,19 @@ export default function LeadGenHistory() {
 
     setIsEnriching(type);
     try {
+      // Track enrichment in local storage as backup to database
+      const localEnrichmentKey = `enrichment_${selectedEntry.id}`;
+      const timestamp = new Date().toISOString();
+      const storedData = localStorage.getItem(localEnrichmentKey);
+      
+      let enrichmentData = storedData ? JSON.parse(storedData) : { count: 0, timestamps: [] };
+      enrichmentData.count += 1;
+      enrichmentData.timestamps.push(timestamp);
+      localStorage.setItem(localEnrichmentKey, JSON.stringify(enrichmentData));
+
+      // Update enrichment status to in_progress
+      await updateEnrichmentStatus(selectedEntry.id, 'in_progress');
+      
       // Get the webhook response for enrichment
       const response = await fetch('https://hook.eu2.make.com/onkwar3s8ivyyz8wjve5g4x4pnp1l18j', {
         method: 'POST',
@@ -730,8 +805,15 @@ export default function LeadGenHistory() {
       const result = await response.text();
       console.log('Enrichment result:', result);
 
+      // Update enrichment status to completed
+      await updateEnrichmentStatus(selectedEntry.id, 'completed');
+      
       showToast('Decision maker search process started', 'success');
       setShowEnrichModal(null);
+      
+      // Refresh data to ensure UI is updated with latest enrichment status
+      await refreshGenerations();
+      
     } catch (error) {
       console.error('Enrichment error:', error);
       showToast('Failed to start enrichment process: ' + (error instanceof Error ? error.message : 'Unknown error'), 'error');
@@ -751,7 +833,7 @@ export default function LeadGenHistory() {
           <h2 className="text-2xl font-bold text-gray-900 mb-2">
             Import Leads
           </h2>
-          <p className="text-gray-600 max-w-sm mx-auto">
+          <p className="text-gray-700 max-w-sm mx-auto">
             This will import the generated leads directly into your leads table.
             The process will take a few moments to complete.
           </p>
@@ -789,29 +871,32 @@ export default function LeadGenHistory() {
   
   // Enrich Modal Component
   const EnrichConfirmModal = () => (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
-        <h2 className="text-xl font-bold text-gray-900 mb-4">
-          Confirm Decision Maker Search
-        </h2>
-        <p className="text-gray-600 mb-6">
-          This will initiate a comprehensive decision-maker contact detail research process.
-          The enrichment may take 5-10 minutes before the lead list is updated.
-        </p>
-        <div className="flex justify-end space-x-3">
+    <Modal onClose={() => setShowEnrichModal(null)}>
+      <div className="space-y-6">
+        <div className="text-center">
+          <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-primary/10 mb-4">
+            <UserPlus className="h-8 w-8 text-primary" />
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">
+            Confirm Decision Maker Search
+          </h2>
+          <p className="text-gray-700 max-w-sm mx-auto">
+            This will initiate a comprehensive decision-maker contact detail research process.
+            The enrichment may take 5-10 minutes before the lead list is updated.
+          </p>
+        </div>
+
+        <div className="flex justify-end space-x-3 mt-6">
           <button
             onClick={() => setShowEnrichModal(null)}
-            className="px-4 py-2 rounded-lg border border-primary text-primary hover:bg-primary/10"
+            className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition-all duration-200 font-medium"
             disabled={isEnriching !== null}
           >
             Cancel
           </button>
           <button
-            onClick={() => {
-              console.log('Starting enrichment for entry:', selectedEntry);
-              enrichData('contacts');
-            }}
-            className="px-4 py-2 rounded-lg bg-primary text-white hover:bg-primary-hover flex items-center"
+            onClick={() => enrichData('contacts')}
+            className="px-6 py-2 rounded-lg bg-gradient-to-r from-primary to-primary-hover text-white hover:opacity-90 transition-all duration-200 font-medium shadow-md hover:shadow-lg transform hover:scale-[1.02] flex items-center"
             disabled={isEnriching !== null}
           >
             {isEnriching === 'contacts' ? (
@@ -828,8 +913,66 @@ export default function LeadGenHistory() {
           </button>
         </div>
       </div>
-    </div>
+    </Modal>
   );
+  
+  // Add new EnrichWarningModal component
+  const EnrichWarningModal = () => {
+    // Get local enrichment data as fallback if selectedEntry doesn't have enrichment data
+    const localEnrichmentKey = `enrichment_${selectedEntry?.id}`;
+    const localEnrichmentData = localStorage.getItem(localEnrichmentKey);
+    const localData = localEnrichmentData ? JSON.parse(localEnrichmentData) : null;
+    
+    const enrichmentCount = selectedEntry?.enrichmentCount || (localData?.count || 0);
+    const lastTimestamp = selectedEntry?.enrichmentTimestamp || (localData?.timestamps?.length > 0 ? localData.timestamps[localData.timestamps.length - 1] : null);
+    
+    return (
+      <Modal onClose={() => setShowEnrichWarningModal(false)}>
+        <div className="space-y-6">
+          <div className="text-center">
+            <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-amber-100 mb-4">
+              <XCircle className="h-8 w-8 text-amber-600" />
+            </div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">
+              Enrichment Already Started
+            </h2>
+            <p className="text-gray-700 max-w-sm mx-auto">
+              This lead list has already been submitted for decision maker enrichment 
+              {enrichmentCount > 0 && <span className="font-medium"> {enrichmentCount} time{enrichmentCount > 1 ? 's' : ''}</span>}.
+              
+              {lastTimestamp && (
+                <span className="block mt-2 font-medium">
+                  Last enriched {formatEnrichmentTime(lastTimestamp)}
+                </span>
+              )}
+              <span className="block mt-2">
+                Running it again might waste API tokens and overwrite existing data.
+              </span>
+            </p>
+          </div>
+
+          <div className="flex justify-end space-x-3 mt-6">
+            <button
+              onClick={() => setShowEnrichWarningModal(false)}
+              className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition-all duration-200 font-medium"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={() => {
+                setShowEnrichWarningModal(false);
+                setShowEnrichModal('contacts');
+              }}
+              className="px-6 py-2 rounded-lg bg-amber-500 text-white hover:bg-amber-600 transition-all duration-200 font-medium shadow-md hover:shadow-lg flex items-center"
+            >
+              <UserPlus className="w-4 h-4 mr-2" />
+              Proceed Anyway
+            </button>
+          </div>
+        </div>
+      </Modal>
+    );
+  };
   
   // Delete Confirmation Modal
   const DeleteConfirmModal = () => {
@@ -1269,11 +1412,8 @@ export default function LeadGenHistory() {
 
             <div className="flex justify-center mt-6 pt-6 border-t border-gray-200">
               <button
-                onClick={() => {
-                  console.log('Starting enrichment for entry:', selectedEntry);
-                  enrichData('contacts');
-                }}
-                className="w-full inline-flex items-center justify-center px-4 py-3 rounded-xl border border-gray-300 text-gray-700 hover:bg-gray-50 transition-all duration-200 font-medium hover:border-primary/30 hover:text-primary"
+                onClick={handleEnrichRequest}
+                className="w-full inline-flex items-center justify-center px-4 py-3 rounded-xl border border-gray-300 text-gray-700 hover:bg-gray-50 transition-all duration-200 font-medium hover:border-primary/30 hover:text-primary relative"
                 disabled={isEnriching !== null}
               >
                 {isEnriching === 'contacts' ? (
@@ -1285,10 +1425,40 @@ export default function LeadGenHistory() {
                   <>
                     <UserPlus className="w-5 h-5 mr-2" />
                     Enrich with Decision Makers
+                    {selectedEntry?.enrichmentCount && selectedEntry.enrichmentCount > 0 && (
+                      <span className="ml-2 text-xs px-2 py-0.5 bg-amber-100 text-amber-800 rounded-full">
+                        Run {selectedEntry.enrichmentCount}x
+                      </span>
+                    )}
                   </>
                 )}
               </button>
             </div>
+            
+            {/* Enrichment status indicator */}
+            {selectedEntry?.enrichmentStatus && selectedEntry.enrichmentStatus !== 'not_started' && (
+              <div className="mt-2 text-center">
+                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                  selectedEntry.enrichmentStatus === 'completed' 
+                    ? 'bg-green-100 text-green-800' 
+                    : 'bg-amber-100 text-amber-700'
+                }`}>
+                  {selectedEntry.enrichmentStatus === 'completed' 
+                    ? <CheckCircle className="w-3 h-3 mr-1" /> 
+                    : <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                  }
+                  {selectedEntry.enrichmentStatus === 'completed' 
+                    ? 'Enrichment Completed' 
+                    : 'Enrichment In Progress'
+                  }
+                </span>
+                {selectedEntry.enrichmentTimestamp && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    Last run: {formatEnrichmentTime(selectedEntry.enrichmentTimestamp)}
+                  </p>
+                )}
+              </div>
+            )}
             
             <button
               onClick={() => setShowImportModal(true)}
@@ -1304,6 +1474,7 @@ export default function LeadGenHistory() {
       {/* Modals */}
       {showImportModal && <ImportConfirmModal />}
       {showEnrichModal && <EnrichConfirmModal />}
+      {showEnrichWarningModal && <EnrichWarningModal />}
       {showDeleteConfirm && <DeleteConfirmModal />}
     </div>
   );

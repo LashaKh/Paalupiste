@@ -31,6 +31,9 @@ export interface GenerationHistory {
     convertedLeads?: number;
     [key: string]: any;
   };
+  enrichmentStatus?: 'not_started' | 'in_progress' | 'completed';
+  enrichmentTimestamp?: string;
+  enrichmentCount?: number;
 }
 
 export interface SuccessModalProps {
