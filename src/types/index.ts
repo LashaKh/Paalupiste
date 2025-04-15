@@ -4,7 +4,7 @@ export interface FormData {
     state: string;
   };
   industries: string[];
-  companySize: string;
+  companySize: string[];
   additionalIndustries?: string;
   sheetLink?: string;
 }
@@ -16,7 +16,7 @@ export interface GenerationHistory {
     state: string;
   } | string;
   industries: string[];
-  companySize: string;
+  companySize: string[];
   additionalIndustries?: string;
   timestamp: string;
   status: 'success' | 'error' | 'completed';

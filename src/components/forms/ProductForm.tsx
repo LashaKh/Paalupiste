@@ -248,7 +248,7 @@ const initialFormData: FormData = {
     state: ''
   },
   industries: [],
-  companySize: '',
+  companySize: [],
   additionalIndustries: ''
 };
 
@@ -275,9 +275,9 @@ export default function ProductForm() {
       case 0:
         return formData.location.country !== '';
       case 1:
-        return formData.industries.length > 0;
+        return formData.industries.length > 0 || (formData.additionalIndustries && formData.additionalIndustries.trim() !== '');
       case 2:
-        return formData.companySize !== '';
+        return formData.companySize.length > 0;
       default:
         return false;
     }
@@ -323,6 +323,19 @@ export default function ProductForm() {
     }));
   };
 
+  const handleCompanySizeChange = (sizeValue: string) => {
+    setFormData(prev => {
+      const currentSizes = prev.companySize;
+      const newSizes = currentSizes.includes(sizeValue)
+        ? currentSizes.filter(s => s !== sizeValue)
+        : [...currentSizes, sizeValue];
+      return {
+        ...prev,
+        companySize: newSizes
+      };
+    });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) {
@@ -359,7 +372,7 @@ export default function ProductForm() {
           additionalIndustries: formData.additionalIndustries,
           formData,
           productName: "Lead Generation",
-          productDescription: `Generated leads for ${formData.industries.join(", ")} in ${formData.location.country}${formData.location.state ? `, ${formData.location.state}` : ''}`,
+          productDescription: `Generated leads for ${formData.industries.join(", ")} in ${formData.location.country}${formData.location.state ? `, ${formData.location.state}` : ''} (Sizes: ${formData.companySize.join(', ') || 'Any'})`,
           sheetId: response.sheetId,
           sheetLink: response.sheetLink,
           leadsCount: response.leadsCount || 0,
@@ -517,7 +530,7 @@ export default function ProductForm() {
           <div className="space-y-6">
             <div className="form-group">
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Company Size
+                Company Size (Select one or more)
               </label>
               <div className="grid grid-cols-1 gap-4">
                 {COMPANY_SIZES.map(size => (
@@ -525,14 +538,14 @@ export default function ProductForm() {
                     key={size.value}
                     type="button"
                     className={`flex items-center justify-between p-4 rounded-lg border ${
-                      formData.companySize === size.value
+                      formData.companySize.includes(size.value)
                         ? 'border-primary bg-primary/5 text-primary'
                         : 'border-gray-200 hover:border-primary/30 hover:bg-gray-50'
                     } transition-colors`}
-                    onClick={() => setFormData(prev => ({ ...prev, companySize: size.value }))}
+                    onClick={() => handleCompanySizeChange(size.value)}
                   >
                     <span className="font-medium">{size.label}</span>
-                    {formData.companySize === size.value && (
+                    {formData.companySize.includes(size.value) && (
                       <Check className="h-5 w-5" />
                     )}
                   </button>

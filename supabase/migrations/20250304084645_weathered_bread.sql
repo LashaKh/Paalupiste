@@ -30,7 +30,11 @@ BEGIN
     SELECT 1 FROM information_schema.columns 
     WHERE table_name = 'lead_history' AND column_name = 'company_size'
   ) THEN
-    ALTER TABLE lead_history ADD COLUMN company_size text;
+    -- Change type to text array
+    ALTER TABLE lead_history ADD COLUMN company_size text[]; 
+  ELSE
+    -- If column exists, alter its type to text array
+    ALTER TABLE lead_history ALTER COLUMN company_size TYPE text[] USING array[company_size];
   END IF;
 END $$;
 

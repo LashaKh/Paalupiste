@@ -68,7 +68,7 @@ interface GenerationEntry {
     state?: string;
   };
   industries: string[];
-  companySize: string;
+  companySize: string[];
   additionalIndustries?: string;
   timestamp: string;
   status: 'success' | 'error';
@@ -1366,7 +1366,11 @@ export default function LeadGenHistory() {
                   </div>
                   <div>
                     <h3 className="font-medium text-gray-900 mb-1">Company Size</h3>
-                    <p className="text-gray-600">{selectedEntry.companySize}</p>
+                    <p className="text-gray-600">
+                      {Array.isArray(selectedEntry.companySize) 
+                        ? selectedEntry.companySize.join(', ') 
+                        : selectedEntry.companySize}
+                    </p>
                   </div>
                 </div>
               </div>
