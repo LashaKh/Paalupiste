@@ -11,14 +11,19 @@ interface Message {
   copied?: boolean;
 }
 
+// Helper type to ensure correct role assignment
+type UserMessage = Omit<Message, 'role'> & { role: 'user' };
+type AssistantMessage = Omit<Message, 'role'> & { role: 'assistant' };
+
 interface ArticleRevisionChatProps {
   isOpen: boolean;
   onClose: () => void;
+  initialArticleContent?: string;
 }
 
 const API_URL = "https://flowise-2-0.onrender.com/api/v1/prediction/d05682e6-efe3-4f84-b774-01d25cf1c4d7";
 
-export function ArticleRevisionChat({ isOpen, onClose }: ArticleRevisionChatProps) {
+export function ArticleRevisionChat({ isOpen, onClose, initialArticleContent }: ArticleRevisionChatProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -30,7 +35,7 @@ export function ArticleRevisionChat({ isOpen, onClose }: ArticleRevisionChatProp
   // Add initial welcome message
   useEffect(() => {
     if (messages.length === 0) {
-      setMessages([
+      const initialMessages: Message[] = [
         {
           id: uuidv4(),
           content: "Hello! I'm your article revision assistant. Paste your article text and let me know what changes you'd like me to help with.",
@@ -38,9 +43,33 @@ export function ArticleRevisionChat({ isOpen, onClose }: ArticleRevisionChatProp
           timestamp: new Date(),
           copied: false
         }
-      ]);
+      ];
+      
+      // If initialArticleContent is provided, add it as a user message
+      if (initialArticleContent) {
+        const userMessage: Message = {
+          id: uuidv4(),
+          content: initialArticleContent,
+          role: 'user',
+          timestamp: new Date(),
+          copied: false
+        };
+        initialMessages.push(userMessage);
+        
+        // Add assistant response to the initial article content
+        const assistantResponse: Message = {
+          id: uuidv4(),
+          content: "I've received your article. What kind of revisions would you like me to help with? For example, I can help with grammar, style, tone, conciseness, etc.",
+          role: 'assistant',
+          timestamp: new Date(),
+          copied: false
+        };
+        initialMessages.push(assistantResponse);
+      }
+      
+      setMessages(initialMessages);
     }
-  }, [messages.length]);
+  }, [messages.length, initialArticleContent]);
 
   // Scroll to bottom whenever messages change
   useEffect(() => {
