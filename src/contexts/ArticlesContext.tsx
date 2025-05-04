@@ -7,6 +7,7 @@ export interface Article {
   title: string;
   link: string;
   timestamp: string;
+  content?: string; // Optional content for revision
 }
 
 interface ArticlesContextType {
@@ -61,6 +62,7 @@ export function ArticlesProvider({ children }: { children: React.ReactNode }) {
         id: article.id,
         title: article.title,
         link: article.link,
+        content: article.content,
         timestamp: article.created_at
       }));
 
@@ -84,6 +86,7 @@ export function ArticlesProvider({ children }: { children: React.ReactNode }) {
             user_id: user.id,
             title: article.title,
             link: article.link,
+            content: article.content,
           })
           .select()
           .single();
@@ -101,6 +104,7 @@ export function ArticlesProvider({ children }: { children: React.ReactNode }) {
           id: data.id,
           title: data.title,
           link: data.link,
+          content: data.content,
           timestamp: data.created_at,
         };
 

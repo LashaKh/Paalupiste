@@ -86,7 +86,8 @@ export function OutlineSidebar({ isOpen, onClose }: OutlineSidebarProps) {
             if (data.ArticleTitle && data.ArticleLink) {
               const article = await addArticle({
                 title: data.ArticleTitle,
-                link: data.ArticleLink
+                link: data.ArticleLink,
+                content: data.ArticleContent || selectedOutline.content // Fallback to outline if no content
               });
               showToast('Article generated and saved successfully', 'success');
               setSelectedOutline(null);

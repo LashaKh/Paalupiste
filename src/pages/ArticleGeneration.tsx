@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { FileText, Sparkles, Loader2, List, Plus, CheckCircle } from 'lucide-react';
+import { FileText, Sparkles, Loader2, List, Plus, CheckCircle, Edit3 } from 'lucide-react';
 import { FormInput } from '../components/forms/FormInput';
 import { FormTextArea } from '../components/forms/FormTextArea';
 import { useToast } from '../contexts/ToastContext';
@@ -8,6 +8,7 @@ import { useIdeas } from '../contexts/IdeasContext';
 import { OutlineSidebar } from '../components/sidebar/OutlineSidebar';
 import { ArticlesSidebar } from '../components/sidebar/ArticlesSidebar';
 import { IdeasSidebar } from '../components/sidebar/IdeasSidebar';
+import { ArticleRevisionChat } from '../components/chat/ArticleRevisionChat';
 import { ArticleInstructions } from '../components/shared/instructions';
 
 interface ArticleTheme {
@@ -23,6 +24,7 @@ export default function ArticleGeneration() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isIdeasSidebarOpen, setIsIdeasSidebarOpen] = useState(false);
   const [isArticlesSidebarOpen, setIsArticlesSidebarOpen] = useState(false);
+  const [isChatOpen, setIsChatOpen] = useState(false);
   const [savingIdeaId, setSavingIdeaId] = useState<number | null>(null);
   const [generatedThemes, setGeneratedThemes] = useState<ArticleTheme[]>([]);
   const { showToast } = useToast();
@@ -259,7 +261,7 @@ export default function ArticleGeneration() {
             onClick={() => setIsIdeasSidebarOpen(true)}
             className="inline-flex items-center px-4 py-2 rounded-lg bg-white border border-gray-200 shadow-lg text-gray-700 hover:bg-gray-50 transition-colors hover:scale-105 transform duration-200"
           >
-            <FileText className="h-5 w-5 mr-2" />
+            <Sparkles className="h-5 w-5 mr-2" />
             Ideas
           </button>
           <button
@@ -276,27 +278,22 @@ export default function ArticleGeneration() {
             <FileText className="h-5 w-5 mr-2" />
             Articles
           </button>
+          <button 
+            onClick={() => setIsChatOpen(true)}
+            className="inline-flex items-center px-4 py-2 rounded-lg bg-white border border-gray-200 shadow-lg text-gray-700 hover:bg-gray-50 transition-colors hover:scale-105 transform duration-200 border-b-2 border-b-green-500"
+          >
+            <Edit3 className="h-5 w-5 mr-2" />
+            Revision
+          </button>
         </div>
       </div>
 
-      {/* Add Sidebar */}
-      <OutlineSidebar
-        isOpen={isSidebarOpen}
-        onClose={() => setIsSidebarOpen(false)}
-      />
-
-      {/* Add Ideas Sidebar */}
-      <IdeasSidebar
-        isOpen={isIdeasSidebarOpen}
-        onClose={() => setIsIdeasSidebarOpen(false)}
-        onSelectIdea={handleSelectIdea}
-      />
-      
-      {/* Add Articles Sidebar */}
-      <ArticlesSidebar
-        isOpen={isArticlesSidebarOpen}
-        onClose={() => setIsArticlesSidebarOpen(false)}
-      />
+      <div className="flex flex-col space-y-4">
+        <OutlineSidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
+        <IdeasSidebar isOpen={isIdeasSidebarOpen} onClose={() => setIsIdeasSidebarOpen(false)} onSelectIdea={handleSelectIdea} />
+        <ArticlesSidebar isOpen={isArticlesSidebarOpen} onClose={() => setIsArticlesSidebarOpen(false)} />
+        <ArticleRevisionChat isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />
+      </div>
 
       <div className="max-w-2xl mx-auto">
         {/* Theme Generator */}

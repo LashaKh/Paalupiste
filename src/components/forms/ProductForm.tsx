@@ -14,31 +14,141 @@ import { motion, AnimatePresence } from 'framer-motion';
 // Webhook URL for lead generation
 const LEAD_GENERATION_WEBHOOK_URL = 'https://hook.eu2.make.com/8xqjvc4pyrhei7f1nc3w6364sqahzkj5';
 
-const INDUSTRIES = [
-  'Fence, wall and noise barrier builders and installer',
-  'Installation partners',
-  'Housing companies',
-  'Energy companies',
-  'Maintenance and repair companies',
-  'Engineering and design offices',
-  'Transport and lifting service companies',
-  'Municipalities, cities and other public entities',
-  'Pier/deck manufacturers and installers',
-  'Glazing installers and manufacturers',
-  'Flagpole manufacturers and installers',
-  'Civil engineering and infrastructure contractors',
-  'Soil survey companies',
-  'Construction companies',
-  'Renovation and painting companies',
-  'Electrical and telecommunications infrastructure contractors (or Network infrastructure contractors)',
-  'Electricity network companies',
-  'House factories and manufacturers of building materials',
-  'Renewable energy producers and other operators',
-  'Solar energy companies',
-  'Wind power companies',
-  'Battery storage technology companies',
-  'Garden and yard builders'
+// Industry categories with subcategories
+const INDUSTRY_CATEGORIES = [
+  {
+    id: 'building',
+    name: 'A: Building Construction / Talonrakennus',
+    industries: [
+      'Residential Construction Companies – Omakotitalorakentajat ja pientalorakentajat',
+      'Multi-Family Housing Developers – Kerrostalojen ja rivitalojen rakennuttajat',
+      'Modular & Prefabricated Building Manufacturers – Modulaaristen ja elementtirakennusten valmistajat',
+      'Vacation Home Builders – Loma-asuntojen rakentajat',
+      'Tiny House Builders & Installers – Pikkutalojen rakentajat ja asentajat',
+      'Log & Timber Frame House Companies – Hirsitalojen ja puurunkoisten talojen rakentajat',
+      'Foundation Contractors for Buildings – Talonperustusten rakentajat',
+      'Renovation & Extension Contractors – Saneeraus- ja laajennusurakoitsijat',
+      'Building Construction General Contractors – Talonrakentamisen pääurakoitsijat',
+      'Turnkey Housing Developers – Avaimet käteen -talopakettien toimittajat'
+    ]
+  },
+  {
+    id: 'infrastructure',
+    name: 'B: Infrastructure Construction / Infrarakentaminen',
+    industries: [
+      'Road & Highway Contractors – Tie- ja katu-urakoitsijat',
+      'Bridge & Tunnel Builders – Silta- ja tunnelirakentajat',
+      'Railway Infrastructure Contractors – Rautatieinfran urakoitsijat',
+      'Utility Infrastructure Contractors – Vesi-, viemäri- ja sähköverkkojen rakentajat',
+      'Telecom Infrastructure Installers – Tietoliikenneverkon rakentajat',
+      'Street Lighting & Signage Contractors – Katuvalaistus- ja liikennemerkkien asentajat',
+      'Public Works Contractors – Kunnallistekniikan ja julkisten rakenteiden urakoitsijat',
+      'Noise Barrier & Retaining Wall Contractors – Meluesteiden ja tukimuurien rakentajat',
+      'Groundworks & Excavation Companies – Pohjarakentamisen ja maanrakennuksen urakoitsijat',
+      'Coastal & Waterway Infrastructure Builders – Ranta-, laivaväylä- ja vesirakenteiden rakentajat',
+      'Parking & Pavement Contractors – Pysäköintialueiden ja asfaltoinnin urakoitsijat'
+    ]
+  },
+  {
+    id: 'landscaping',
+    name: 'C: Landscaping & Outdoor Construction / Piha- ja ympäristörakentaminen',
+    industries: [
+      'Landscape Construction Contractors – Viher- ja piharakentamisen urakoitsijat',
+      'Garden & Park Builders – Puutarhojen ja puistojen rakentajat',
+      'Deck & Patio Installers – Terassien ja patioiden rakentajat ja asentajat',
+      'Pergola & Outdoor Structure Builders – Pergoloiden ja muiden piharakenteiden rakentajat',
+      'Fence & Gate Installers – Aitojen ja porttien asentajat',
+      'Retaining Wall Contractors – Tukimuurien rakentajat',
+      'Noise Barrier Builders – Meluesteiden rakentajat',
+      'Outdoor Lighting & Smart Garden Installers – Ulkovalaistusratkaisujen ja älypihajärjestelmien asentajat',
+      'Playground & Outdoor Sports Area Contractors – Leikki- ja liikunta-alueiden rakentajat',
+      'Dock & Waterfront Construction Companies – Laituri- ja rantarakentajat',
+      'Dock & Pier Manufacturers and Installers – Laitureiden ja laiturirakenteiden valmistajat ja asentajat',
+      'Terrace Glazing Manufacturers and Installers – Terassilasitusten valmistajat ja asentajat',
+      'Flagpole Manufacturers and Installers – Lipputankojen valmistajat ja asentajat'
+    ]
+  },
+  {
+    id: 'design',
+    name: 'D: Design & Engineering Firms / Suunnittelu- ja insinööritoimistot',
+    industries: [
+      'Architectural Design Studios – Arkkitehtitoimistot',
+      'Structural Engineering Consultants – Rakennesuunnittelijat',
+      'Geotechnical Engineering Firms – Geotekniset suunnittelutoimistot',
+      'Civil Engineering Consultants – Infrasuunnittelijat ja yleiset insinööritoimistot',
+      'Foundation Design Specialists – Perustussuunnitteluun erikoistuneet toimistot',
+      'Urban & Land Use Planners – Kaupunkisuunnittelu- ja kaavoitustoimistot',
+      'Landscape Architects & Designers – Maisema-arkkitehdit ja pihasuunnittelijat',
+      'Infrastructure Design Firms – Tie-, katu- ja verkostosuunnittelutoimistot',
+      'Marine & Coastal Engineering Firms – Vesirakenteiden ja rannikkoinfran suunnittelutoimistot',
+      'Environmental & Permitting Consultants – Ympäristökonsultit ja lupaprosessien asiantuntijat',
+      'Modular & Prefabricated Design Services – Modulaaristen rakennusten suunnittelutoimistot'
+    ]
+  },
+  {
+    id: 'maintenance',
+    name: 'E: Maintenance & Public Sector / Huolto- ja julkisyhteisöt',
+    industries: [
+      'Property Maintenance Companies – Kiinteistöhuolto- ja ylläpitoyritykset',
+      'Municipal Construction & Maintenance Units – Kuntien rakentamis- ja kunnossapitoyksiköt',
+      'Public Housing Authorities – Julkiset asuntotoimistot ja vuokrataloyhtiöt',
+      'Energy & Utility Companies (civil infra needs) – Energia- ja verkkoyhtiöt, joilla on infraurakointitarpeita',
+      'School & Healthcare Facility Managers – Koulujen ja terveydenhuollon tilahallinnosta vastaavat',
+      'Park & Recreation Departments – Kuntien puisto- ja virkistysalueyksiköt',
+      'Cemetery & Church Property Managers – Hautausmaiden ja seurakuntien kiinteistövastaavat',
+      'Port & Marina Authorities – Satamien ja venesatamien hallinnoijat',
+      'Road Maintenance Agencies – Teiden kunnossapitoyksiköt',
+      'Military & Government Facility Managers – Armeijan ja valtion kiinteistöhallinnot'
+    ]
+  },
+  {
+    id: 'energy_dev',
+    name: 'F: Energy Project Developers / Energiahankkeiden kehittäjät',
+    industries: [
+      'Solar Energy Project Developers – Aurinkovoimahankkeiden kehittäjät',
+      'Wind Energy Project Developers (Small to Medium Scale) – Tuulivoimahankkeiden kehittäjät (pienet ja keskisuuret)',
+      'Battery Energy Storage System (BESS) Investors & Developers – Akkuvarastohankkeiden kehittäjät ja sijoittajat',
+      'Grid Infrastructure Investors – Sähköasemien ja voimalinjojen kehittäjät',
+      'Hybrid Energy Project Developers (Solar + BESS + Wind) – Yhdistettyjen energiaratkaisujen kehittäjät',
+      'Renewable Energy Asset Owners – Uusiutuvan energian tuotantolaitosten omistajat',
+      'Fossil Fuel Power Plant Developers – Fossiilisiin polttoaineisiin perustuvien voimaloiden kehittäjät',
+      'Nuclear Energy Project Developers – Ydinvoimahankkeiden kehittäjät',
+      'Municipal & Cooperative Energy Companies – Kunnalliset ja osuuskuntapohjaiset energiayhtiöt',
+      'Independent Power Producers (IPPs) – Riippumattomat sähkön tuottajat'
+    ]
+  },
+  {
+    id: 'energy_eng',
+    name: 'G: Energy Engineering, Design & Consulting / Energiarakentamisen suunnittelijat ja konsultit',
+    industries: [
+      'Energy Sector Engineering Firms (civil, structural, electrical) – Energiahankkeisiin erikoistuneet suunnittelu- ja insinööritoimistot',
+      'Renewable Energy Design Consultants – Uusiutuvan energian suunnitteluasiantuntijat',
+      'Grid & Substation Design Engineers – Sähköverkon ja sähköasemien suunnittelijat',
+      'Geotechnical & Foundation Design Consultants – Geotekniikan ja perustusten suunnittelijat',
+      'EPC Designers (working under EPC contractors) – EPC-hankkeiden sisäiset suunnittelijat',
+      'Environmental & Permitting Consultants – Ympäristö- ja lupakonsultit',
+      'Energy System Planners & Technical Advisors – Energiajärjestelmien suunnittelijat ja tekniset neuvonantajat'
+    ]
+  },
+  {
+    id: 'energy_const',
+    name: 'H: Energy Construction & Installation Contractors / Energia-alan rakentajat ja asentajat',
+    industries: [
+      'EPC Contractors (Engineering, Procurement, Construction) – EPC-urakoitsijat',
+      'Solar PV Installers & Contractors – Aurinkopaneeliasennusten urakoitsijat',
+      'Wind Turbine Installers (Small & Mid Scale) – Tuulivoimaloiden asentajat (pieni ja keskikokoluokka)',
+      'BESS System Integrators & Contractors – Akkuvarastojärjestelmien asentajat ja integroijat',
+      'Substation & Grid Connection Contractors – Sähköasemien ja verkkoonliitäntöjen urakoitsijat',
+      'Civil Engineering Contractors (energy infra) – Rakennusurakoitsijat, jotka erikoistuneet energiarakentamiseen',
+      'Foundation Contractors (incl. helical/screw piles) – Perustusten rakentajat (ml. ruuvipaalut)',
+      'Utility Infrastructure Contractors (cabling, trenching, etc.) – Sähkö- ja tiedonsiirtokaapeloinnin urakoitsijat',
+      'Heavy Equipment & Crane Operators for Energy Projects – Nosto- ja raskaskalustopalvelut energia-alalle'
+    ]
+  }
 ];
+
+// Flattened list for compatibility with existing code
+const INDUSTRIES = INDUSTRY_CATEGORIES.flatMap(category => category.industries);
 
 const COMPANY_SIZES = [
   { value: 'small', label: 'Small (1-10 employees)' },
@@ -298,12 +408,23 @@ export default function ProductForm() {
   };
 
   const handleIndustryChange = (industry: string) => {
-    setFormData(prev => ({
-      ...prev,
-      industries: prev.industries.includes(industry)
+    setFormData(prev => {
+      const industries = prev.industries.includes(industry)
         ? prev.industries.filter(i => i !== industry)
-        : [...prev.industries, industry]
-    }));
+        : [...prev.industries, industry];
+      return { ...prev, industries };
+    });
+  };
+  
+  // Track expanded categories in the industries section
+  const [expandedCategories, setExpandedCategories] = useState<string[]>([]);
+  
+  const toggleCategory = (categoryId: string) => {
+    setExpandedCategories(prev => 
+      prev.includes(categoryId) 
+        ? prev.filter(id => id !== categoryId)
+        : [...prev, categoryId]
+    );
   };
 
   const handleAdditionalIndustriesChange = (value: string) => {
@@ -468,46 +589,77 @@ export default function ProductForm() {
               <label className="block text-sm font-medium text-gray-700 mb-4">
                 Target Industries
               </label>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[400px] overflow-y-auto p-1">
-                {INDUSTRIES.map(industry => (
-                  <div
-                    key={industry}
-                    onClick={() => handleIndustryChange(industry)}
-                    className="flex items-start space-x-3 p-3 hover:bg-gray-50 rounded-lg transition-colors cursor-pointer group"
-                  >
-                    <div className="flex items-center h-5 mt-0.5">
-                      <input
-                        type="checkbox"
-                        checked={formData.industries.includes(industry)}
-                        onChange={() => {}}
-                        className="h-4 w-4 text-primary border-gray-300 rounded focus:ring-primary/20 cursor-pointer"
-                      />
+              <div className="rounded-lg border border-gray-200 overflow-hidden mb-4">
+                <div className="max-h-[500px] overflow-y-auto p-1">
+                  {INDUSTRY_CATEGORIES.map((category) => (
+                    <div key={category.id} className="mb-2 border-b border-gray-100 last:border-b-0">
+                      <button
+                        type="button"
+                        onClick={() => toggleCategory(category.id)}
+                        className="flex justify-between items-center w-full p-3 text-left font-medium text-gray-800 hover:bg-gray-50 transition-colors"
+                      >
+                        <span className="text-sm">{category.name}</span>
+                        <svg
+                          className={`w-5 h-5 transition-transform ${expandedCategories.includes(category.id) ? 'transform rotate-180' : ''}`}
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </button>
+                      
+                      {expandedCategories.includes(category.id) && (
+                        <div className="px-3 pb-3">
+                          <div className="space-y-1 ml-2">
+                            {category.industries.map((industry) => (
+                              <div
+                                key={industry}
+                                onClick={() => handleIndustryChange(industry)}
+                                className="flex items-start space-x-3 p-2 hover:bg-gray-50 rounded-lg transition-colors cursor-pointer group"
+                              >
+                                <div className="flex items-center h-5 mt-0.5">
+                                  <input
+                                    type="checkbox"
+                                    checked={formData.industries.includes(industry)}
+                                    onChange={() => {}}
+                                    className="h-4 w-4 text-primary border-gray-300 rounded focus:ring-primary/20 cursor-pointer"
+                                  />
+                                </div>
+                                <label className="text-sm text-gray-700 cursor-pointer select-none flex-1 group-hover:text-gray-900">
+                                  {industry}
+                                </label>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
-                    <label className="text-sm text-gray-700 cursor-pointer select-none flex-1 group-hover:text-gray-900">
-                      {industry}
-                    </label>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
               
               {formData.industries.length > 0 && (
-                <div className="mt-4 flex flex-wrap gap-2">
-                  {formData.industries.map(industry => (
-                    <span
-                      key={industry}
-                      className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary group"
-                    >
-                      {industry}
-                      <button
-                        type="button"
-                        onClick={() => handleIndustryChange(industry)}
-                        className="ml-1 hover:text-primary-hover focus:outline-none"
-                        aria-label={`Remove ${industry}`}
+                <div className="mt-4 bg-gray-50 p-3 rounded-lg border border-gray-100">
+                  <h4 className="text-sm font-medium text-gray-700 mb-2">Selected Industries ({formData.industries.length})</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {formData.industries.map(industry => (
+                      <span
+                        key={industry}
+                        className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary group"
                       >
-                        ×
-                      </button>
-                    </span>
-                  ))}
+                        {industry}
+                        <button
+                          type="button"
+                          onClick={() => handleIndustryChange(industry)}
+                          className="ml-1 hover:text-primary-hover focus:outline-none"
+                          aria-label={`Remove ${industry}`}
+                        >
+                          ×
+                        </button>
+                      </span>
+                    ))}
+                  </div>
                 </div>
               )}
 
