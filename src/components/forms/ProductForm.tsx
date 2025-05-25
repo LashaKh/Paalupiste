@@ -11,9 +11,6 @@ import { FormData, GenerationHistory } from '../../types';
 import { v4 as uuidv4 } from 'uuid';
 import { motion, AnimatePresence } from 'framer-motion';
 
-// Webhook URL for lead generation
-const LEAD_GENERATION_WEBHOOK_URL = 'https://hook.eu2.make.com/8xqjvc4pyrhei7f1nc3w6364sqahzkj5';
-
 // Industry categories with subcategories
 const INDUSTRY_CATEGORIES = [
   {
@@ -368,7 +365,11 @@ const steps = [
   { id: 'company-size', title: 'Company Size', icon: Users },
 ];
 
-export default function ProductForm() {
+interface ProductFormProps {
+  webhookUrl: string;
+}
+
+export default function ProductForm({ webhookUrl }: ProductFormProps) {
   const [currentStep, setCurrentStep] = useState(0);
   const [formData, setFormData] = useState<FormData>(initialFormData);
   const [isLoading, setIsLoading] = useState(false);
@@ -469,12 +470,40 @@ export default function ProductForm() {
 
     try {
       const leadGenService = new LeadGenerationService();
-      const response = await leadGenService.generateLeads(formData, {
+      const response = await leadGenService.generateLeads(formData, webhookUrl, {
         onStatusChange: (status, message) => {
           console.log(`Generation status: ${status} - ${message}`);
         },
         onComplete: (sheetId, sheetLink) => {
-          console.log('Generation complete:', { sheetId, sheetLink });
+          const newHistoryEntry: Omit<GenerationHistory, 'id'> = {
+            // productName and productDescription are not in ProductForm's FormData type from src/types/index.ts
+            // If they are available from another source (e.g. a broader state in ProductForm), they can be added here.
+            // productName: formData.productName, 
+            // productDescription: formData.productDescription,
+            industries: formData.industries,
+            companySize: formData.companySize, // This is string[] in FormData and GenerationHistory
+            additionalIndustries: formData.additionalIndustries,
+            location: formData.location,
+            status: 'completed', // Corrected casing
+            sheetLink: sheetLink,
+            sheetId: sheetId,
+            timestamp: new Date().toISOString(),
+            formData: { ...formData } // Storing the form data itself for history
+            // enrichmentStatus and other fields can be added if needed, with defaults
+          };
+          addGeneration(newHistoryEntry);
+
+          showToast('Lead generation started successfully! Results will be available soon.', 'success', 40000);
+          setShowSuccessModal(true);
+          setGeneratedId(sheetId); // Assuming generatedId is for sheetId
+          // If you need to store sheetLink in state, you'll need to add a new state variable for it.
+          // For now, it's used directly or passed to the modal.
+
+          console.log(`Generation completed: Sheet ID: ${sheetId}, Sheet Link: ${sheetLink}`);
+
+          setTimeout(() => {
+            navigate('/app/leads/history');
+          }, 40000); // 40 seconds redirect
         },
         onError: (error) => {
           console.error('Generation error:', error);

@@ -17,7 +17,6 @@ interface GenerationResponse {
 }
 
 export class LeadGenerationService {
-  private static WEBHOOK_URL = 'https://hook.eu2.make.com/8xqjvc4pyrhei7f1nc3w6364sqahzkj5';
   private static IMPORT_WEBHOOK_URL = 'https://hook.eu2.make.com/neljqr5sqfmzh0cfagnkzdl8a9nmtr3b';
 
   /**
@@ -29,6 +28,7 @@ export class LeadGenerationService {
 
   async generateLeads(
     formData: FormData,
+    webhookUrl: string,
     callbacks: {
       onStatusChange?: (status: string, message: string) => void;
       onComplete?: (sheetId: string, sheetLink: string) => void;
@@ -36,7 +36,7 @@ export class LeadGenerationService {
     }
   ): Promise<GenerationResponse> {
     try {
-      const response = await fetch(LeadGenerationService.WEBHOOK_URL, {
+      const response = await fetch(webhookUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'

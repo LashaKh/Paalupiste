@@ -44,7 +44,7 @@ export function GenerationHistoryProvider({ children }: { children: React.ReactN
         productName: entry.product_name,
         productDescription: entry.product_description,
         industries: entry.industries || [],
-        companySize: entry.company_size || '',
+        companySize: typeof entry.company_size === 'string' && entry.company_size.startsWith('[') ? JSON.parse(entry.company_size) : (Array.isArray(entry.company_size) ? entry.company_size : []),
         additionalIndustries: entry.additional_industries || '',
         location: entry.location,
         status: entry.status,
@@ -100,7 +100,7 @@ export function GenerationHistoryProvider({ children }: { children: React.ReactN
         const newEntry: GenerationHistory = {
           id: data[0].id,
           industries: generation.industries || [],
-          companySize: generation.companySize || '',
+          companySize: generation.companySize || [],
           additionalIndustries: generation.additionalIndustries || '',
           productName: generation.productName,
           productDescription: generation.productDescription,
