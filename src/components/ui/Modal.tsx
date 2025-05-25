@@ -40,11 +40,8 @@ export default function Modal({ children, onClose }: ModalProps) {
     
     // Cleanup function to restore original style
     return () => {
-      // Use a slight delay to prevent flicker during transitions
-      setTimeout(() => {
-        document.body.style.overflow = originalOverflow;
-        document.body.style.paddingRight = originalPaddingRight;
-      }, 10);
+      document.body.style.overflow = originalOverflow;
+      document.body.style.paddingRight = originalPaddingRight;
     };
   }, []);
   
