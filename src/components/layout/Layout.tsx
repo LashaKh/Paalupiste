@@ -28,7 +28,7 @@ export default function Layout() {
                         location.pathname === '/app';                        
 
   return (
-    <div className="min-h-screen bg-white flex overflow-hidden">
+    <div className="min-h-screen bg-white flex">
       {/* Sidebar for lead-related pages */}
       <div 
         className={`fixed top-0 left-0 h-screen z-40 transform transition-transform duration-300 ease-in-out ${
